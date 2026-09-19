@@ -145,6 +145,38 @@ describe('runCli', () => {
     expect(errors).toEqual(['--repo must use OWNER/REPO']);
   });
 
+  it('applies repository-specific config selected by the caller', async () => {
+    const messages: string[] = [];
+
+    const code = await runCli(
+      [
+        '--repo',
+        'LibreCodeCoop/github-governance',
+        '--config',
+        'governance.config.json',
+      ],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient(),
+      {
+        log: (message) => messages.push(message),
+        error: () => undefined,
+      },
+      async () => ({
+        repositories: {
+          'github-governance': {
+            policies: ['governance-ci'],
+          },
+        },
+      }),
+    );
+
+    expect(code).toBe(1);
+    expect(messages).toContain(
+      '  - create: Protect default and stable branches',
+    );
+    expect(messages).toContain('  - create: Require governance CI');
+  });
+
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 
