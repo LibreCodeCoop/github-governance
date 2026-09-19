@@ -1,13 +1,13 @@
-import {
-  NEXTCLOUD_BOT_ID,
-  baseRuleset,
-  governanceRepositoryCiRuleset,
-} from './policies.js';
+import { NEXTCLOUD_BOT_ID, baseRuleset } from './policies.js';
 import type {
   PolicySet,
   RepositoryClassification,
   RepositoryRuleset,
 } from './types.js';
+
+export type RepositoryPolicyOptions = {
+  extraRulesets?: RepositoryRuleset[];
+};
 
 function cloneRuleset(ruleset: RepositoryRuleset): RepositoryRuleset {
   return structuredClone(ruleset);
@@ -35,6 +35,7 @@ function withNextcloudBotBypass(ruleset: RepositoryRuleset): RepositoryRuleset {
 
 export function composeRepositoryPolicy(
   repository: RepositoryClassification,
+  options: RepositoryPolicyOptions = {},
 ): PolicySet {
   if (!repository.isPublic || repository.isArchived) {
     return { rulesets: [] };
@@ -44,14 +45,8 @@ export function composeRepositoryPolicy(
     repository.isNextcloudApp
       ? withNextcloudBotBypass(baseRuleset)
       : cloneRuleset(baseRuleset),
+    ...(options.extraRulesets ?? []).map(cloneRuleset),
   ];
-
-  if (
-    repository.owner === 'LibreCodeCoop' &&
-    repository.name === 'github-governance'
-  ) {
-    rulesets.push(cloneRuleset(governanceRepositoryCiRuleset));
-  }
 
   return { rulesets };
 }
