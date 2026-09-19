@@ -47,15 +47,3 @@ export type RepositoryRuleset = {
   };
   rules: RulesetRule[];
 };
-
-export type RepositoryClassification = {
-  owner: string;
-  name: string;
-  isPublic: boolean;
-  isArchived: boolean;
-  isNextcloudApp: boolean;
-};
-
-export type PolicySet = {
-  rulesets: RepositoryRuleset[];
-};

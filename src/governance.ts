@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { classifyRepository } from './repository-classifier.js';
-import { composeRepositoryPolicy } from './policy-composer.js';
 import {
   planRepositoryRulesets,
   reconcileRepositoryRulesets,
@@ -27,7 +25,6 @@ export interface GovernanceClient
 
 export type RepositoryPlan = {
   repository: string;
-  isNextcloudApp: boolean;
   changes: RulesetChange[];
 };
 
@@ -38,23 +35,20 @@ export type RepositoryPolicyResolver = (
 export async function planRepository(
   client: GovernanceClient,
   repository: RepositoryMetadata,
-  extraRulesets: RepositoryRuleset[] = [],
+  desiredRulesets: RepositoryRuleset[] = [],
 ): Promise<RepositoryPlan> {
-  const classification = await classifyRepository(repository, client);
-  const policy = composeRepositoryPolicy(classification, { extraRulesets });
   const existing = await client.list(repository.owner, repository.name);
 
   return {
     repository: `${repository.owner}/${repository.name}`,
-    isNextcloudApp: classification.isNextcloudApp,
-    changes: planRepositoryRulesets(existing, policy.rulesets),
+    changes: planRepositoryRulesets(existing, desiredRulesets),
   };
 }
 
 export async function planOrganization(
   client: GovernanceClient,
   organization: string,
-  resolveExtraRulesets: RepositoryPolicyResolver = () => [],
+  resolveRulesets: RepositoryPolicyResolver = () => [],
 ): Promise<RepositoryPlan[]> {
   const repositories = await client.listManagedRepositories(organization);
   const plans: RepositoryPlan[] = [];
@@ -64,7 +58,7 @@ export async function planOrganization(
       await planRepository(
         client,
         repository,
-        await resolveExtraRulesets(repository),
+        await resolveRulesets(repository),
       ),
     );
   }
@@ -75,9 +69,9 @@ export async function planOrganization(
 export async function syncRepository(
   client: GovernanceClient,
   repository: RepositoryMetadata,
-  extraRulesets: RepositoryRuleset[] = [],
+  desiredRulesets: RepositoryRuleset[] = [],
 ): Promise<RepositoryPlan> {
-  const plan = await planRepository(client, repository, extraRulesets);
+  const plan = await planRepository(client, repository, desiredRulesets);
   const desired = plan.changes.flatMap((change) =>
     change.action === 'unchanged' ? [change.current] : [change.desired],
   );
@@ -95,7 +89,7 @@ export async function syncRepository(
 export async function syncOrganization(
   client: GovernanceClient,
   organization: string,
-  resolveExtraRulesets: RepositoryPolicyResolver = () => [],
+  resolveRulesets: RepositoryPolicyResolver = () => [],
 ): Promise<RepositoryPlan[]> {
   const repositories = await client.listManagedRepositories(organization);
   const plans: RepositoryPlan[] = [];
@@ -105,7 +99,7 @@ export async function syncOrganization(
       await syncRepository(
         client,
         repository,
-        await resolveExtraRulesets(repository),
+        await resolveRulesets(repository),
       ),
     );
   }

@@ -2,7 +2,7 @@
   "name": "@librecodecoop/github-governance",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared GitHub governance policy composition for LibreCodeCoop and LibreSign",
+  "description": "Declarative GitHub repository ruleset reconciliation",
   "type": "module",
   "engines": {
     "node": ">=24"

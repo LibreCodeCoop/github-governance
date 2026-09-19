@@ -3,7 +3,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { planOrganization } from '../src/governance.js';
-import { baseRuleset } from '../src/policies.js';
 import type {
   ExistingRepositoryRuleset,
   RepositoryRulesetClient,
@@ -14,12 +13,25 @@ import type {
 } from '../src/repository-classifier.js';
 import type { RepositoryRuleset } from '../src/types.js';
 
+const ruleset: RepositoryRuleset = {
+  name: 'Protect branches',
+  target: 'branch',
+  enforcement: 'active',
+  bypass_actors: [],
+  conditions: {
+    ref_name: {
+      include: ['~DEFAULT_BRANCH'],
+      exclude: [],
+    },
+  },
+  rules: [],
+};
+
 class FakeGovernanceClient
   implements GitHubContentProbe, RepositoryRulesetClient
 {
   constructor(
     private readonly repositories: RepositoryMetadata[],
-    private readonly nextcloudApps: Set<string>,
     private readonly existing: Map<string, ExistingRepositoryRuleset[]>,
   ) {}
 
@@ -37,8 +49,8 @@ class FakeGovernanceClient
     return structuredClone(this.repositories);
   }
 
-  async exists(owner: string, repository: string): Promise<boolean> {
-    return this.nextcloudApps.has(`${owner}/${repository}`);
+  async exists(): Promise<boolean> {
+    return false;
   }
 
   async list(
@@ -48,61 +60,50 @@ class FakeGovernanceClient
     return structuredClone(this.existing.get(`${owner}/${repository}`) ?? []);
   }
 
-  async create(
-    _owner: string,
-    _repository: string,
-    _ruleset: RepositoryRuleset,
-  ): Promise<void> {
+  async create(): Promise<void> {
     throw new Error('not expected in planning');
   }
 
-  async update(
-    _owner: string,
-    _repository: string,
-    _id: number,
-    _ruleset: RepositoryRuleset,
-  ): Promise<void> {
+  async update(): Promise<void> {
     throw new Error('not expected in planning');
   }
 }
 
 describe('planOrganization', () => {
-  it('plans ordinary and Nextcloud repositories with shared policy rules', async () => {
+  it('plans repositories using caller-resolved policies', async () => {
     const client = new FakeGovernanceClient(
       [
         {
-          owner: 'LibreSign',
-          name: 'documentation',
+          owner: 'ExampleOrg',
+          name: 'one',
           visibility: 'public',
           archived: false,
         },
         {
-          owner: 'LibreSign',
-          name: 'libresign',
+          owner: 'ExampleOrg',
+          name: 'two',
           visibility: 'public',
           archived: false,
         },
       ],
-      new Set(['LibreSign/libresign']),
       new Map([
-        [
-          'LibreSign/documentation',
-          [{ ...structuredClone(baseRuleset), id: 1 }],
-        ],
+        ['ExampleOrg/one', [{ ...structuredClone(ruleset), id: 1 }]],
       ]),
     );
 
-    const plans = await planOrganization(client, 'LibreSign');
+    const plans = await planOrganization(
+      client,
+      'ExampleOrg',
+      async () => [structuredClone(ruleset)],
+    );
 
     expect(plans).toHaveLength(2);
     expect(plans[0]).toMatchObject({
-      repository: 'LibreSign/documentation',
-      isNextcloudApp: false,
+      repository: 'ExampleOrg/one',
       changes: [{ action: 'unchanged' }],
     });
     expect(plans[1]).toMatchObject({
-      repository: 'LibreSign/libresign',
-      isNextcloudApp: true,
+      repository: 'ExampleOrg/two',
       changes: [{ action: 'create' }],
     });
   });

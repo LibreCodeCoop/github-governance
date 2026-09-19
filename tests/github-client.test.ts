@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { GitHubClient } from '../src/github-client.js';
-import { baseRuleset } from '../src/policies.js';
+import { protectedBranchesFixture } from './ruleset-fixtures.js';
 
 type ExpectedRequest = {
   url: string;
@@ -28,10 +28,10 @@ describe('GitHubClient', () => {
   it('loads repository metadata for repository-scoped execution', async () => {
     const requests: ExpectedRequest[] = [
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign',
+        url: 'https://api.github.test/repos/ExampleOrg/project',
         response: Response.json({
-          name: 'libresign',
-          owner: { login: 'LibreSign' },
+          name: 'project',
+          owner: { login: 'ExampleOrg' },
           visibility: 'public',
           archived: false,
         }),
@@ -45,10 +45,10 @@ describe('GitHubClient', () => {
     );
 
     await expect(
-      client.getRepository('LibreSign', 'libresign'),
+      client.getRepository('ExampleOrg', 'project'),
     ).resolves.toEqual({
-      owner: 'LibreSign',
-      name: 'libresign',
+      owner: 'ExampleOrg',
+      name: 'project',
       visibility: 'public',
       archived: false,
     });
@@ -62,20 +62,20 @@ describe('GitHubClient', () => {
         response: Response.json({
           repositories: [
             {
-              name: 'libresign',
-              owner: { login: 'LibreSign' },
+              name: 'project',
+              owner: { login: 'ExampleOrg' },
               visibility: 'public',
               archived: false,
             },
             {
               name: 'archive',
-              owner: { login: 'LibreSign' },
+              owner: { login: 'ExampleOrg' },
               visibility: 'public',
               archived: true,
             },
             {
               name: 'private',
-              owner: { login: 'LibreSign' },
+              owner: { login: 'ExampleOrg' },
               visibility: 'private',
               archived: false,
             },
@@ -96,10 +96,10 @@ describe('GitHubClient', () => {
       'https://api.github.test',
     );
 
-    await expect(client.listManagedRepositories('LibreSign')).resolves.toEqual([
+    await expect(client.listManagedRepositories('ExampleOrg')).resolves.toEqual([
       {
-        owner: 'LibreSign',
-        name: 'libresign',
+        owner: 'ExampleOrg',
+        name: 'project',
         visibility: 'public',
         archived: false,
       },
@@ -110,7 +110,7 @@ describe('GitHubClient', () => {
   it('returns false only for a 404 content probe', async () => {
     const requests: ExpectedRequest[] = [
       {
-        url: 'https://api.github.test/repos/LibreSign/documentation/contents/appinfo/info.xml',
+        url: 'https://api.github.test/repos/ExampleOrg/documentation/contents/appinfo/info.xml',
         response: new Response('', { status: 404 }),
       },
     ];
@@ -121,14 +121,14 @@ describe('GitHubClient', () => {
     );
 
     await expect(
-      client.exists('LibreSign', 'documentation', 'appinfo/info.xml'),
+      client.exists('ExampleOrg', 'documentation', 'appinfo/info.xml'),
     ).resolves.toBe(false);
   });
 
   it('fails closed for unexpected content probe errors', async () => {
     const requests: ExpectedRequest[] = [
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign/contents/appinfo/info.xml',
+        url: 'https://api.github.test/repos/ExampleOrg/project/contents/appinfo/info.xml',
         response: new Response('', { status: 403 }),
       },
     ];
@@ -139,16 +139,16 @@ describe('GitHubClient', () => {
     );
 
     await expect(
-      client.exists('LibreSign', 'libresign', 'appinfo/info.xml'),
+      client.exists('ExampleOrg', 'project', 'appinfo/info.xml'),
     ).rejects.toThrow('HTTP 403');
   });
 
   it('loads repository ruleset details and ignores organization-sourced rulesets', async () => {
     const rulesetResponse = {
       id: 7,
-      name: baseRuleset.name,
-      target: baseRuleset.target,
-      enforcement: baseRuleset.enforcement,
+      name: protectedBranchesFixture.name,
+      target: protectedBranchesFixture.target,
+      enforcement: protectedBranchesFixture.enforcement,
       bypass_actors: [
         {
           actor_id: null,
@@ -156,19 +156,19 @@ describe('GitHubClient', () => {
           bypass_mode: 'pull_request',
         },
       ],
-      conditions: baseRuleset.conditions,
-      rules: baseRuleset.rules,
+      conditions: protectedBranchesFixture.conditions,
+      rules: protectedBranchesFixture.rules,
     };
     const requests: ExpectedRequest[] = [
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign/rulesets?per_page=100',
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets?per_page=100',
         response: Response.json([
           { id: 7, source_type: 'Repository' },
           { id: 8, source_type: 'Organization' },
         ]),
       },
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign/rulesets/7',
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets/7',
         response: Response.json(rulesetResponse),
       },
     ];
@@ -178,12 +178,12 @@ describe('GitHubClient', () => {
       'https://api.github.test',
     );
 
-    const rulesets = await client.list('LibreSign', 'libresign');
+    const rulesets = await client.list('ExampleOrg', 'project');
 
     expect(rulesets).toHaveLength(1);
     expect(rulesets[0]).toMatchObject({
       id: 7,
-      name: baseRuleset.name,
+      name: protectedBranchesFixture.name,
       bypass_actors: [
         {
           actor_id: 0,
@@ -197,12 +197,12 @@ describe('GitHubClient', () => {
   it('creates and updates repository rulesets with JSON bodies', async () => {
     const requests: ExpectedRequest[] = [
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign/rulesets',
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets',
         method: 'POST',
         response: Response.json({}, { status: 201 }),
       },
       {
-        url: 'https://api.github.test/repos/LibreSign/libresign/rulesets/9',
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets/9',
         method: 'PUT',
         response: Response.json({}),
       },
@@ -213,8 +213,8 @@ describe('GitHubClient', () => {
       'https://api.github.test',
     );
 
-    await client.create('LibreSign', 'libresign', baseRuleset);
-    await client.update('LibreSign', 'libresign', 9, baseRuleset);
+    await client.create('ExampleOrg', 'project', protectedBranchesFixture);
+    await client.update('ExampleOrg', 'project', 9, protectedBranchesFixture);
 
     expect(requests).toHaveLength(0);
   });

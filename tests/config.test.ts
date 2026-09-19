@@ -2,34 +2,97 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest';
-import { resolveExtraRulesets } from '../src/config.js';
+import { resolveRepositoryRulesets } from '../src/config.js';
+import type { GovernanceConfig } from '../src/config.js';
 
-describe('resolveExtraRulesets', () => {
-  it('resolves shared named policies without duplicating their ruleset body', () => {
-    const rulesets = resolveExtraRulesets(
-      {
-        repositories: {
-          'github-governance': {
-            policies: ['governance-ci'],
-          },
-        },
+const protectedBranches = {
+  name: 'Protect branches',
+  target: 'branch' as const,
+  enforcement: 'active' as const,
+  bypass_actors: [],
+  conditions: {
+    ref_name: {
+      include: ['~DEFAULT_BRANCH'],
+      exclude: [],
+    },
+  },
+  rules: [],
+};
+
+const config: GovernanceConfig = {
+  policies: {
+    protected: protectedBranches,
+  },
+  defaults: {
+    policies: ['protected'],
+  },
+  conditions: [
+    {
+      when: {
+        file_exists: 'marker/file',
       },
-      'github-governance',
+      add_bypass_actors: {
+        protected: [
+          {
+            actor_id: 1234,
+            actor_type: 'User',
+            bypass_mode: 'always',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+describe('resolveRepositoryRulesets', () => {
+  it('resolves default policies from caller configuration', async () => {
+    const rulesets = await resolveRepositoryRulesets(
+      config,
+      {
+        owner: 'ExampleOrg',
+        name: 'project',
+        visibility: 'public',
+        archived: false,
+      },
+      { exists: async () => false },
     );
 
-    expect(rulesets.map(({ name }) => name)).toEqual([
-      'Require governance CI',
+    expect(rulesets).toEqual([protectedBranches]);
+  });
+
+  it('applies generic file-exists conditional bypasses', async () => {
+    const rulesets = await resolveRepositoryRulesets(
+      config,
+      {
+        owner: 'ExampleOrg',
+        name: 'project',
+        visibility: 'public',
+        archived: false,
+      },
+      { exists: async () => true },
+    );
+
+    expect(rulesets[0]?.bypass_actors).toEqual([
+      {
+        actor_id: 1234,
+        actor_type: 'User',
+        bypass_mode: 'always',
+      },
     ]);
   });
 
-  it('supports repository-local rulesets for exceptional requirements', () => {
-    const rulesets = resolveExtraRulesets(
+  it('supports repository-specific policies and rulesets', async () => {
+    const rulesets = await resolveRepositoryRulesets(
       {
+        policies: {
+          protected: protectedBranches,
+        },
         repositories: {
-          '.github': {
+          special: {
+            policies: ['protected'],
             rulesets: [
               {
-                name: 'Organization repository CI',
+                name: 'Special CI',
                 target: 'branch',
                 enforcement: 'active',
                 bypass_actors: [],
@@ -45,28 +108,84 @@ describe('resolveExtraRulesets', () => {
           },
         },
       },
-      '.github',
+      {
+        owner: 'ExampleOrg',
+        name: 'special',
+        visibility: 'public',
+        archived: false,
+      },
+      { exists: async () => false },
     );
 
-    expect(rulesets[0]?.name).toBe('Organization repository CI');
+    expect(rulesets.map(({ name }) => name)).toEqual([
+      'Protect branches',
+      'Special CI',
+    ]);
   });
 
-  it('fails closed for an unknown shared policy', () => {
-    expect(() =>
-      resolveExtraRulesets(
+  it('does not manage private or archived repositories', async () => {
+    await expect(
+      resolveRepositoryRulesets(
+        config,
         {
-          repositories: {
-            repo: {
-              policies: ['unknown-policy'],
-            },
+          owner: 'ExampleOrg',
+          name: 'private',
+          visibility: 'private',
+          archived: false,
+        },
+        { exists: async () => true },
+      ),
+    ).resolves.toEqual([]);
+
+    await expect(
+      resolveRepositoryRulesets(
+        config,
+        {
+          owner: 'ExampleOrg',
+          name: 'archive',
+          visibility: 'public',
+          archived: true,
+        },
+        { exists: async () => true },
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('fails closed for unknown policies', async () => {
+    await expect(
+      resolveRepositoryRulesets(
+        {
+          defaults: {
+            policies: ['missing'],
           },
         },
-        'repo',
+        {
+          owner: 'ExampleOrg',
+          name: 'project',
+          visibility: 'public',
+          archived: false,
+        },
+        { exists: async () => false },
       ),
-    ).toThrow('Unknown governance policy');
+    ).rejects.toThrow('Unknown governance policy');
   });
 
-  it('returns no extra rulesets when the repository has no override', () => {
-    expect(resolveExtraRulesets({}, 'libresign')).toEqual([]);
+  it('fails closed when a conditional probe fails', async () => {
+    await expect(
+      resolveRepositoryRulesets(
+        config,
+        {
+          owner: 'ExampleOrg',
+          name: 'project',
+          visibility: 'public',
+          archived: false,
+        },
+        {
+          exists: async () => {
+            throw new Error('HTTP 403');
+          },
+        },
+      ),
+    ).rejects.toThrow('HTTP 403');
   });
 });

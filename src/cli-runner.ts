@@ -3,7 +3,7 @@
 
 import {
   loadGovernanceConfig,
-  resolveExtraRulesets,
+  resolveRepositoryRulesets,
   type GovernanceConfig,
 } from './config.js';
 import type { GovernanceClient } from './governance.js';
@@ -52,6 +52,12 @@ export async function runCli(
 
   const client = clientFactory(token);
   const config = await configLoader(configPath);
+  const resolveRulesets = (repository: {
+    owner: string;
+    name: string;
+    visibility: 'public' | 'private' | 'internal';
+    archived: boolean;
+  }) => resolveRepositoryRulesets(config, repository, client);
 
   if (repositoryArgument) {
     const [owner, repository, ...extra] = repositoryArgument.split('/');
@@ -61,21 +67,18 @@ export async function runCli(
     }
 
     const metadata = await client.getRepository(owner, repository);
-    const extraRulesets = resolveExtraRulesets(config, repository);
+    const desiredRulesets = await resolveRulesets(metadata);
     const plan = apply
-      ? await syncRepository(client, metadata, extraRulesets)
-      : await planRepository(client, metadata, extraRulesets);
+      ? await syncRepository(client, metadata, desiredRulesets)
+      : await planRepository(client, metadata, desiredRulesets);
 
     writePlans([plan], apply, output);
     return !apply && hasDrift([plan]) ? 1 : 0;
   }
 
-  const resolver = (repository: { name: string }) =>
-    resolveExtraRulesets(config, repository.name);
-
   const plans = apply
-    ? await syncOrganization(client, organization!, resolver)
-    : await planOrganization(client, organization!, resolver);
+    ? await syncOrganization(client, organization!, resolveRulesets)
+    : await planOrganization(client, organization!, resolveRulesets);
 
   writePlans(plans, apply, output);
   return !apply && hasDrift(plans) ? 1 : 0;
@@ -90,16 +93,13 @@ function writePlans(
     const changes = plan.changes.filter(
       (change) => change.action !== 'unchanged',
     );
-    const kind = plan.isNextcloudApp ? 'Nextcloud app' : 'repository';
 
     if (changes.length === 0) {
-      output.log(`OK ${plan.repository} (${kind})`);
+      output.log(`OK ${plan.repository}`);
       continue;
     }
 
-    output.log(
-      `${apply ? 'APPLIED' : 'DRIFT'} ${plan.repository} (${kind})`,
-    );
+    output.log(`${apply ? 'APPLIED' : 'DRIFT'} ${plan.repository}`);
     for (const change of changes) {
       output.log(`  - ${change.action}: ${change.desired.name}`);
     }

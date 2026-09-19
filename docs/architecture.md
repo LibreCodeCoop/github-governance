@@ -5,27 +5,32 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Architecture
 
-GitHub Governance separates shared implementation from organization-specific
-configuration.
+GitHub Governance separates a generic reconciliation engine from caller-owned
+policy.
 
 ## Responsibilities
 
 The central repository owns:
 
-- shared repository policies;
-- repository classification;
+- configuration loading and validation;
+- generic repository metadata and content probes;
 - GitHub API access;
+- ruleset normalization;
 - drift planning and reconciliation;
 - dry-run and apply behavior;
 - automated tests.
 
-Organization repositories such as `LibreSign/.github` and
-`LibreCodeCoop/.github` should keep only:
+Caller repositories own:
 
-- organization-specific policy selection;
-- exceptional repository overrides;
+- named rulesets;
+- default policy selection;
+- conditional policy changes;
+- repository-specific overrides;
 - GitHub App credentials;
-- a small workflow that invokes the shared implementation.
+- the workflow that invokes the shared implementation.
+
+The engine must not need product names, organization names, repository names,
+actor IDs, or product-specific file paths to reconcile policy.
 
 ## Execution model
 
@@ -33,26 +38,26 @@ Repository-scoped execution is preferred for production changes.
 
 A caller can enumerate repositories with read-only permissions, generate a
 short-lived GitHub App token restricted to one repository, and invoke the
-governance CLI for that repository. This preserves the limited blast radius of
-the existing LibreSign automation without duplicating its implementation.
+governance action for that repository.
 
 The CLI is dry-run by default. Mutation requires an explicit `--apply`.
 
-Production callers invoke the repository's composite action from their own
-privileged workflow. Token creation remains in the caller so GitHub App
-credentials can stay protected by the caller's environment and each token can
-remain scoped to one repository.
+Production callers create tokens in their own protected environment. This keeps
+credential ownership and approval boundaries in the organization being managed.
 
 ## Policy model
 
-The base policy applies to public, non-archived repositories.
+Policies are declared in the caller's configuration and can be selected:
 
-Nextcloud applications are detected through `appinfo/info.xml`. They receive
-the pinned `nextcloud-bot` bypass required for translation workflows.
+- by default for every managed public, non-archived repository;
+- for a specific repository;
+- conditionally when a generic repository probe such as `file_exists` matches.
 
-Shared additional policies can be selected by name from caller configuration.
-Exceptional repository-specific rulesets can be declared by the caller without
-hardcoding organization or repository names in the engine.
+Conditions can add policies, local rulesets, or bypass actors to an already
+selected policy. The reconciliation engine only manages rulesets named in the
+resolved desired configuration and does not delete unrelated rulesets.
+
+See [Configuration](configuration.md).
 
 ## Current scope
 
