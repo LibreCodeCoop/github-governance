@@ -12,6 +12,18 @@ class FakeClient implements GovernanceClient {
     private readonly existing: ExistingRepositoryRuleset[] = [],
   ) {}
 
+  async getRepository(
+    owner: string,
+    repository: string,
+  ): Promise<RepositoryMetadata> {
+    return {
+      owner,
+      name: repository,
+      visibility: 'public',
+      archived: false,
+    };
+  }
+
   async listManagedRepositories(): Promise<RepositoryMetadata[]> {
     return [
       {
@@ -60,7 +72,9 @@ describe('runCli', () => {
     );
 
     expect(code).toBe(2);
-    expect(errors).toEqual(['Missing required --org OWNER']);
+    expect(errors).toEqual([
+      'Specify exactly one of --org OWNER or --repo OWNER/REPO',
+    ]);
   });
 
   it('requires a GitHub token', async () => {
@@ -95,6 +109,40 @@ describe('runCli', () => {
 
     expect(code).toBe(1);
     expect(messages[0]).toContain('DRIFT LibreSign/documentation');
+  });
+
+  it('supports repository-scoped dry-run', async () => {
+    const messages: string[] = [];
+
+    const code = await runCli(
+      ['--repo', 'LibreSign/documentation'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient(),
+      {
+        log: (message) => messages.push(message),
+        error: () => undefined,
+      },
+    );
+
+    expect(code).toBe(1);
+    expect(messages[0]).toContain('DRIFT LibreSign/documentation');
+  });
+
+  it('rejects malformed repository selectors', async () => {
+    const errors: string[] = [];
+
+    const code = await runCli(
+      ['--repo', 'LibreSign/documentation/extra'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient(),
+      {
+        log: () => undefined,
+        error: (message) => errors.push(message),
+      },
+    );
+
+    expect(code).toBe(2);
+    expect(errors).toEqual(['--repo must use OWNER/REPO']);
   });
 
   it('uses apply mode only when explicitly requested', async () => {
