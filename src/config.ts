@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { readFile } from 'node:fs/promises';
 import { namedRulesets } from './policies.js';
 import type { RepositoryRuleset } from './types.js';
