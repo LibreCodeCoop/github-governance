@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli-runner.js';
 import type { GovernanceClient } from '../src/governance.js';
