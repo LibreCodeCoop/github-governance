@@ -57,3 +57,15 @@ Mutation requires `--apply`.
 
 Production integration must prove parity with the existing LibreSign ruleset
 automation before the old implementation is removed.
+
+## Composite action
+
+Organization repositories should keep repository discovery and GitHub App token
+generation in their own privileged workflow, then call this repository's
+`action.yml` once per repository.
+
+This is intentional: environment-protected credentials remain owned by the
+caller and are never moved to a broader repository or organization secret just
+to satisfy reusable-workflow secret propagation.
+
+The action remains dry-run unless `apply: 'true'` is passed.

@@ -38,6 +38,11 @@ the existing LibreSign automation without duplicating its implementation.
 
 The CLI is dry-run by default. Mutation requires an explicit `--apply`.
 
+Production callers invoke the repository's composite action from their own
+privileged workflow. Token creation remains in the caller so GitHub App
+credentials can stay protected by the caller's environment and each token can
+remain scoped to one repository.
+
 ## Policy model
 
 The base policy applies to public, non-archived repositories.
