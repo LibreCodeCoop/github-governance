@@ -8,10 +8,11 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run build && npm test"
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@types/node": "24.3.0",
