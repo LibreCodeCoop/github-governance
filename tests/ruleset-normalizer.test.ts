@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { describe, expect, it } from 'vitest';
 import { baseRuleset, governanceRepositoryCiRuleset } from '../src/policies.js';
 import { normalizeRuleset, rulesetsEqual } from '../src/ruleset-normalizer.js';
