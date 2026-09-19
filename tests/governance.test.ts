@@ -20,6 +20,16 @@ class FakeGovernanceClient
     private readonly existing: Map<string, ExistingRepositoryRuleset[]>,
   ) {}
 
+  async getRepository(owner: string, repository: string): Promise<RepositoryMetadata> {
+    const match = this.repositories.find(
+      (candidate) => candidate.owner === owner && candidate.name === repository,
+    );
+    if (!match) {
+      throw new Error('repository not found');
+    }
+    return structuredClone(match);
+  }
+
   async listManagedRepositories(): Promise<RepositoryMetadata[]> {
     return structuredClone(this.repositories);
   }
