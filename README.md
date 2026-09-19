@@ -48,13 +48,22 @@ npm install
 npm run check
 ```
 
-The governance CLI is dry-run by default:
+The governance CLI is dry-run by default. It supports organization-wide
+inspection and repository-scoped execution:
 
 ```bash
+npm run build
+
 GITHUB_TOKEN=... node dist/cli.js --org LibreSign
+GITHUB_TOKEN=... node dist/cli.js --repo LibreSign/libresign
 ```
 
 Mutation requires an explicit `--apply`.
+
+Repository-scoped mode is the preferred production path. It allows the
+organization workflow to generate a short-lived GitHub App token restricted to
+one repository, preserving the limited blast radius of the current LibreSign
+automation while sharing the implementation from this repository.
 
 The CLI is not enabled against production organizations until its dry-run output
 has been compared with the existing LibreSign ruleset synchronizer.
