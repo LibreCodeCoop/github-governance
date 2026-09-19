@@ -77,3 +77,21 @@ Missing named policies fail closed. Failed content probes also fail closed; an
 API error is not treated as a negative match.
 
 Private and archived repositories resolve to no managed rulesets.
+
+## Caller workflow prerequisites
+
+A caller workflow using the composite action needs a GitHub App installed in
+the organization it manages.
+
+The caller should keep:
+
+- the GitHub App client ID in `RULESET_APP_CLIENT_ID`;
+- the GitHub App private key in the `RULESET_APP_PRIVATE_KEY` secret;
+- both values inside, or available to, the protected environment used by the
+  reconciliation job.
+
+The client ID is configuration, not a secret. The private key must remain a
+secret and must not be stored in this repository.
+
+Dry-run callers should request only read access to repository administration
+where possible. Write access should be reserved for explicit apply operations.
