@@ -23,3 +23,16 @@ reconciliation engine.
 The project can still integrate Safe Settings later for settings it supports
 well, while keeping repository ruleset reconciliation in this shared,
 well-tested implementation.
+
+
+## Upstream opportunity
+
+The limitation appears to be in Safe Settings' configuration plumbing rather
+than in its REST implementation. Its rulesets plugin already supports
+repository-scoped GET/POST/PUT/DELETE operations and has unit tests for
+repository rulesets.
+
+A future upstream contribution can evaluate exposing `rulesets` in repo/suborg
+schemas and removing the current filtering from repository-specific config.
+Until that behavior is available and released upstream, this project keeps the
+repository-ruleset reconciler small and independently tested.
