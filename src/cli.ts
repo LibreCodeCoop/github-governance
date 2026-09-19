@@ -5,7 +5,7 @@ import { GitHubClient } from './github-client.js';
 
 const code = await runCli(
   process.argv.slice(2),
-  process.env,
+  { GITHUB_TOKEN: process.env.GITHUB_TOKEN },
   (token) => new GitHubClient(token),
   {
     log: console.log,
