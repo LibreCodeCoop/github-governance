@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { describe, expect, it } from 'vitest';
 import { GitHubClient } from '../src/github-client.js';
 import { baseRuleset } from '../src/policies.js';
