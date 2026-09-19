@@ -53,11 +53,7 @@ export async function runCli(
       `${apply ? 'APPLIED' : 'DRIFT'} ${plan.repository} (${kind})`,
     );
     for (const change of changes) {
-      const name =
-        change.action === 'unchanged'
-          ? change.current.name
-          : change.desired.name;
-      output.log(`  - ${change.action}: ${name}`);
+      output.log(`  - ${change.action}: ${change.desired.name}`);
     }
   }
 
