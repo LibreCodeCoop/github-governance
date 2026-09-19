@@ -13,6 +13,18 @@ export async function classifyRepository(
   repository: RepositoryMetadata,
   probe: GitHubContentProbe,
 ) {
+  const isPublic = repository.visibility === 'public';
+
+  if (!isPublic || repository.archived) {
+    return {
+      owner: repository.owner,
+      name: repository.name,
+      isPublic,
+      isArchived: repository.archived,
+      isNextcloudApp: false,
+    };
+  }
+
   const isNextcloudApp = await probe.exists(
     repository.owner,
     repository.name,
@@ -22,7 +34,7 @@ export async function classifyRepository(
   return {
     owner: repository.owner,
     name: repository.name,
-    isPublic: repository.visibility === 'public',
+    isPublic,
     isArchived: repository.archived,
     isNextcloudApp,
   };
