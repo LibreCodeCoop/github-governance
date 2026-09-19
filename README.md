@@ -54,8 +54,8 @@ inspection and repository-scoped execution:
 ```bash
 npm run build
 
-GITHUB_TOKEN=... node dist/cli.js --org LibreSign
-GITHUB_TOKEN=... node dist/cli.js --repo LibreSign/libresign
+GITHUB_TOKEN=... node dist/cli.js --org LibreSign --config /path/to/governance.config.json
+GITHUB_TOKEN=... node dist/cli.js --repo LibreSign/libresign --config /path/to/governance.config.json
 ```
 
 Mutation requires an explicit `--apply`.
@@ -64,6 +64,22 @@ Repository-scoped mode is the preferred production path. It allows the
 organization workflow to generate a short-lived GitHub App token restricted to
 one repository, preserving the limited blast radius of the current LibreSign
 automation while sharing the implementation from this repository.
+
+The config belongs to the caller and contains only organization/repository
+selection. Shared policy bodies remain here. For example:
+
+```json
+{
+  "repositories": {
+    ".github": {
+      "policies": ["governance-ci"]
+    }
+  }
+}
+```
+
+Exceptional repository-only rulesets can also be declared inline, without
+adding repository names or organization names to the governance engine.
 
 The CLI is not enabled against production organizations until its dry-run output
 has been compared with the existing LibreSign ruleset synchronizer.
