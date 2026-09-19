@@ -22,6 +22,36 @@ function fakeFetch(expectations: ExpectedRequest[]): typeof fetch {
 }
 
 describe('GitHubClient', () => {
+  it('loads repository metadata for repository-scoped execution', async () => {
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/LibreSign/libresign',
+        response: Response.json({
+          name: 'libresign',
+          owner: { login: 'LibreSign' },
+          visibility: 'public',
+          archived: false,
+        }),
+      },
+    ];
+
+    const client = new GitHubClient(
+      'token',
+      fakeFetch(requests),
+      'https://api.github.test',
+    );
+
+    await expect(
+      client.getRepository('LibreSign', 'libresign'),
+    ).resolves.toEqual({
+      owner: 'LibreSign',
+      name: 'libresign',
+      visibility: 'public',
+      archived: false,
+    });
+    expect(requests).toHaveLength(0);
+  });
+
   it('lists only public non-archived repositories from the selected organization', async () => {
     const requests: ExpectedRequest[] = [
       {
