@@ -20,6 +20,42 @@ export interface RepositoryRulesetClient {
   ): Promise<void>;
 }
 
+export type RulesetChange =
+  | { action: 'create'; desired: RepositoryRuleset }
+  | {
+      action: 'update';
+      id: number;
+      current: ExistingRepositoryRuleset;
+      desired: RepositoryRuleset;
+    }
+  | { action: 'unchanged'; current: ExistingRepositoryRuleset };
+
+export function planRepositoryRulesets(
+  existing: ExistingRepositoryRuleset[],
+  desiredRulesets: RepositoryRuleset[],
+): RulesetChange[] {
+  const byName = new Map(existing.map((ruleset) => [ruleset.name, ruleset]));
+
+  return desiredRulesets.map((desired): RulesetChange => {
+    const current = byName.get(desired.name);
+
+    if (!current) {
+      return { action: 'create', desired };
+    }
+
+    if (rulesetsEqual(current, desired)) {
+      return { action: 'unchanged', current };
+    }
+
+    return {
+      action: 'update',
+      id: current.id,
+      current,
+      desired,
+    };
+  });
+}
+
 export type ReconcileResult = {
   created: string[];
   updated: string[];
@@ -32,8 +68,10 @@ export async function reconcileRepositoryRulesets(
   repository: string,
   desiredRulesets: RepositoryRuleset[],
 ): Promise<ReconcileResult> {
-  const existing = await client.list(owner, repository);
-  const byName = new Map(existing.map((ruleset) => [ruleset.name, ruleset]));
+  const changes = planRepositoryRulesets(
+    await client.list(owner, repository),
+    desiredRulesets,
+  );
 
   const result: ReconcileResult = {
     created: [],
@@ -41,22 +79,20 @@ export async function reconcileRepositoryRulesets(
     unchanged: [],
   };
 
-  for (const desired of desiredRulesets) {
-    const current = byName.get(desired.name);
-
-    if (!current) {
-      await client.create(owner, repository, desired);
-      result.created.push(desired.name);
+  for (const change of changes) {
+    if (change.action === 'create') {
+      await client.create(owner, repository, change.desired);
+      result.created.push(change.desired.name);
       continue;
     }
 
-    if (rulesetsEqual(current, desired)) {
-      result.unchanged.push(desired.name);
+    if (change.action === 'update') {
+      await client.update(owner, repository, change.id, change.desired);
+      result.updated.push(change.desired.name);
       continue;
     }
 
-    await client.update(owner, repository, current.id, desired);
-    result.updated.push(desired.name);
+    result.unchanged.push(change.current.name);
   }
 
   return result;
