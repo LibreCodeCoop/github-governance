@@ -93,5 +93,10 @@ The caller should keep:
 The client ID is configuration, not a secret. The private key must remain a
 secret and must not be stored in this repository.
 
-Dry-run callers should request only read access to repository administration
-where possible. Write access should be reserved for explicit apply operations.
+`administration: write` is required even for dry-run when the caller needs an
+accurate repository ruleset representation: GitHub omits `bypass_actors` from
+ruleset responses without write access. Dry-run safety therefore comes from the
+engine's explicit `apply=false` behavior rather than from reducing the token to
+administration read-only access.
+
+Callers that use `file_exists` conditions must also request `contents: read`.
