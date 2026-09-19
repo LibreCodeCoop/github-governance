@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+version = 1
+SPDX-PackageName = "github-governance"
+SPDX-PackageSupplier = "LibreCode <contact@librecode.coop>"
+SPDX-PackageDownloadLocation = "https://github.com/LibreCodeCoop/github-governance"
+
+default-license = "AGPL-3.0-or-later"
+default-copyright = "2026 LibreCode coop and contributors"
+
+[[annotations]]
+path = [
+    ".gitignore",
+    "governance.config.json",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "tsconfig.build.json"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LibreCode coop and contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
