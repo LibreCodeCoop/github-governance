@@ -2,7 +2,7 @@ import type { GovernanceClient } from './governance.js';
 import { planOrganization, syncOrganization } from './governance.js';
 
 export type CliEnvironment = {
-  GITHUB_TOKEN?: string;
+  GITHUB_TOKEN?: string | undefined;
 };
 
 export type CliOutput = {
