@@ -37,6 +37,40 @@ export class GitHubClient
     private readonly apiUrl = 'https://api.github.com',
   ) {}
 
+  async getRepository(
+    owner: string,
+    repository: string,
+  ): Promise<RepositoryMetadata> {
+    const data = await this.requestJson<GitHubRepository>(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`,
+    );
+
+    const name = data.name;
+    const login = data.owner?.login;
+    const visibility = data.visibility;
+    const archived = data.archived;
+
+    if (
+      login !== owner ||
+      name !== repository ||
+      !(
+        visibility === 'public' ||
+        visibility === 'private' ||
+        visibility === 'internal'
+      ) ||
+      typeof archived !== 'boolean'
+    ) {
+      throw new Error(`Invalid repository response for ${owner}/${repository}`);
+    }
+
+    return {
+      owner: login,
+      name,
+      visibility,
+      archived,
+    };
+  }
+
   async listManagedRepositories(
     organization: string,
   ): Promise<RepositoryMetadata[]> {
