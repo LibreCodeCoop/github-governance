@@ -12,7 +12,10 @@ if (!organization) {
   process.exitCode = 2;
 } else {
   try {
-    const repositories = await discoverPublicRepositories(organization);
+    const repositories = await discoverPublicRepositories(
+      organization,
+      process.env.GITHUB_TOKEN,
+    );
     console.log(JSON.stringify(repositories));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

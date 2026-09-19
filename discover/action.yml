@@ -8,6 +8,9 @@ inputs:
   organization:
     description: GitHub organization login
     required: true
+  token:
+    description: GitHub token used to avoid anonymous API rate limits
+    required: true
 
 outputs:
   repositories:
@@ -37,6 +40,7 @@ runs:
       id: discover
       shell: bash
       env:
+        GITHUB_TOKEN: ${{ inputs.token }}
         ORGANIZATION: ${{ inputs.organization }}
       working-directory: ${{ github.action_path }}/..
       run: |
