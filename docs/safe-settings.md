@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Safe Settings compatibility
 
 GitHub Safe Settings remains useful for repository and organization settings, but
