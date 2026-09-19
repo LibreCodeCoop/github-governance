@@ -1,3 +1,8 @@
+import {
+  loadGovernanceConfig,
+  resolveExtraRulesets,
+  type GovernanceConfig,
+} from './config.js';
 import type { GovernanceClient } from './governance.js';
 import {
   planOrganization,
@@ -15,14 +20,20 @@ export type CliOutput = {
   error(message: string): void;
 };
 
+export type GovernanceConfigLoader = (
+  path: string | undefined,
+) => Promise<GovernanceConfig>;
+
 export async function runCli(
   args: string[],
   environment: CliEnvironment,
   clientFactory: (token: string) => GovernanceClient,
   output: CliOutput,
+  configLoader: GovernanceConfigLoader = loadGovernanceConfig,
 ): Promise<number> {
   const organization = option(args, '--org');
   const repositoryArgument = option(args, '--repo');
+  const configPath = option(args, '--config');
   const apply = args.includes('--apply');
   const token = environment.GITHUB_TOKEN;
 
@@ -37,6 +48,7 @@ export async function runCli(
   }
 
   const client = clientFactory(token);
+  const config = await configLoader(configPath);
 
   if (repositoryArgument) {
     const [owner, repository, ...extra] = repositoryArgument.split('/');
@@ -46,17 +58,21 @@ export async function runCli(
     }
 
     const metadata = await client.getRepository(owner, repository);
+    const extraRulesets = resolveExtraRulesets(config, repository);
     const plan = apply
-      ? await syncRepository(client, metadata)
-      : await planRepository(client, metadata);
+      ? await syncRepository(client, metadata, extraRulesets)
+      : await planRepository(client, metadata, extraRulesets);
 
     writePlans([plan], apply, output);
     return !apply && hasDrift([plan]) ? 1 : 0;
   }
 
+  const resolver = (repository: { name: string }) =>
+    resolveExtraRulesets(config, repository.name);
+
   const plans = apply
-    ? await syncOrganization(client, organization!)
-    : await planOrganization(client, organization!);
+    ? await syncOrganization(client, organization!, resolver)
+    : await planOrganization(client, organization!, resolver);
 
   writePlans(plans, apply, output);
   return !apply && hasDrift(plans) ? 1 : 0;
