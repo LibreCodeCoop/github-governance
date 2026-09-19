@@ -8,6 +8,7 @@ export type RepositorySummary = {
 
 export async function discoverPublicRepositories(
   organization: string,
+  token?: string,
   fetchImpl: typeof fetch = fetch,
   apiBase = 'https://api.github.com',
 ): Promise<string[]> {
@@ -19,6 +20,7 @@ export async function discoverPublicRepositories(
       {
         headers: {
           Accept: 'application/vnd.github+json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'X-GitHub-Api-Version': '2026-03-10',
           'User-Agent': 'github-governance',
         },
