@@ -60,29 +60,29 @@ describe('discoverPublicRepositories', () => {
     await expect(
       discoverPublicRepositories(
         'ExampleOrg',
+        undefined,
         failingFetch,
         'https://api.github.test',
       ),
     ).rejects.toThrow('HTTP 403');
   });
-});
 
+  it('sends bearer authentication when a token is provided', async () => {
+    let authorization: string | null = null;
 
-it('sends bearer authentication when a token is provided', async () => {
-  let authorization: string | null = null;
+    const authenticatedFetch: typeof fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      authorization = headers.get('authorization');
+      return Response.json([]);
+    };
 
-  const authenticatedFetch: typeof fetch = async (_input, init) => {
-    const headers = new Headers(init?.headers);
-    authorization = headers.get('authorization');
-    return Response.json([]);
-  };
+    await discoverPublicRepositories(
+      'ExampleOrg',
+      'token-value',
+      authenticatedFetch,
+      'https://api.github.test',
+    );
 
-  await discoverPublicRepositories(
-    'ExampleOrg',
-    'token-value',
-    authenticatedFetch,
-    'https://api.github.test',
-  );
-
-  expect(authorization).toBe('Bearer token-value');
+    expect(authorization).toBe('Bearer token-value');
+  });
 });
