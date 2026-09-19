@@ -69,3 +69,22 @@ caller and are never moved to a broader repository or organization secret just
 to satisfy reusable-workflow secret propagation.
 
 The action remains dry-run unless `apply: 'true'` is passed.
+
+
+## GitHub Actions dependencies
+
+Third-party GitHub Actions must be pinned to an immutable full commit SHA and
+annotated with the exact release version represented by that SHA:
+
+```yaml
+uses: actions/checkout@<full-commit-sha> # vX.Y.Z
+```
+
+Do not use floating tags such as `@v3` or `@main` in workflow execution.
+
+Dependabot monitors GitHub Actions dependencies and should update both the
+immutable pin and its corresponding release reference.
+
+Reusable actions from this repository follow the same convention once a real
+Git tag/release exists. Do not label a SHA with a version that has not actually
+been published.
