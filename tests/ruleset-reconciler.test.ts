@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest';
-import { baseRuleset } from '../src/policies.js';
+import { protectedBranchesFixture } from './ruleset-fixtures.js';
 import {
   reconcileRepositoryRulesets,
   type ExistingRepositoryRuleset,
@@ -44,31 +44,31 @@ describe('reconcileRepositoryRulesets', () => {
 
     const result = await reconcileRepositoryRulesets(
       client,
-      'LibreSign',
-      'documentation',
-      [baseRuleset],
+      'ExampleOrg',
+      'project',
+      [protectedBranchesFixture],
     );
 
-    expect(result.created).toEqual(['Protect default and stable branches']);
+    expect(result.created).toEqual(['Protect branches']);
     expect(client.created).toHaveLength(1);
   });
 
   it('does not update an equivalent ruleset', async () => {
-    const client = new FakeClient([{ ...structuredClone(baseRuleset), id: 7 }]);
+    const client = new FakeClient([{ ...structuredClone(protectedBranchesFixture), id: 7 }]);
 
     const result = await reconcileRepositoryRulesets(
       client,
-      'LibreSign',
-      'documentation',
-      [baseRuleset],
+      'ExampleOrg',
+      'project',
+      [protectedBranchesFixture],
     );
 
-    expect(result.unchanged).toEqual(['Protect default and stable branches']);
+    expect(result.unchanged).toEqual(['Protect branches']);
     expect(client.updated).toEqual([]);
   });
 
   it('updates a managed ruleset when policy drifts', async () => {
-    const current = structuredClone(baseRuleset);
+    const current = structuredClone(protectedBranchesFixture);
     const pullRequestRule = current.rules.find(
       (rule) => rule.type === 'pull_request',
     );
@@ -81,20 +81,20 @@ describe('reconcileRepositoryRulesets', () => {
 
     const result = await reconcileRepositoryRulesets(
       client,
-      'LibreSign',
-      'documentation',
-      [baseRuleset],
+      'ExampleOrg',
+      'project',
+      [protectedBranchesFixture],
     );
 
-    expect(result.updated).toEqual(['Protect default and stable branches']);
+    expect(result.updated).toEqual(['Protect branches']);
     expect(client.updated).toEqual([
-      { id: 9, ruleset: baseRuleset },
+      { id: 9, ruleset: protectedBranchesFixture },
     ]);
   });
 
   it('does not delete unrelated rulesets', async () => {
     const unrelated: ExistingRepositoryRuleset = {
-      ...structuredClone(baseRuleset),
+      ...structuredClone(protectedBranchesFixture),
       id: 11,
       name: 'Repository-specific policy',
     };
@@ -102,9 +102,9 @@ describe('reconcileRepositoryRulesets', () => {
 
     await reconcileRepositoryRulesets(
       client,
-      'LibreSign',
-      'documentation',
-      [baseRuleset],
+      'ExampleOrg',
+      'project',
+      [protectedBranchesFixture],
     );
 
     expect(client.created).toHaveLength(1);

@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { RepositoryRuleset } from './types.js';
+import type { RepositoryRuleset } from '../src/types.js';
 
-export const NEXTCLOUD_BOT_ID = 20296731;
-
-export const baseRuleset: RepositoryRuleset = {
-  name: 'Protect default and stable branches',
+export const protectedBranchesFixture: RepositoryRuleset = {
+  name: 'Protect branches',
   target: 'branch',
   enforcement: 'active',
   bypass_actors: [
@@ -39,17 +37,11 @@ export const baseRuleset: RepositoryRuleset = {
   ],
 };
 
-export const governanceRepositoryCiRuleset: RepositoryRuleset = {
-  name: 'Require governance CI',
+export const requiredCiFixture: RepositoryRuleset = {
+  name: 'Require CI',
   target: 'branch',
   enforcement: 'active',
-  bypass_actors: [
-    {
-      actor_id: 0,
-      actor_type: 'OrganizationAdmin',
-      bypass_mode: 'pull_request',
-    },
-  ],
+  bypass_actors: [],
   conditions: {
     ref_name: {
       include: ['~DEFAULT_BRANCH'],
@@ -61,7 +53,7 @@ export const governanceRepositoryCiRuleset: RepositoryRuleset = {
       type: 'required_status_checks',
       parameters: {
         required_status_checks: [
-          { context: 'Governance policy tests' },
+          { context: 'Policy tests' },
           { context: 'TypeScript' },
         ],
         strict_required_status_checks_policy: true,
@@ -69,9 +61,4 @@ export const governanceRepositoryCiRuleset: RepositoryRuleset = {
       },
     },
   ],
-};
-
-
-export const namedRulesets: Record<string, RepositoryRuleset> = {
-  'governance-ci': governanceRepositoryCiRuleset,
 };

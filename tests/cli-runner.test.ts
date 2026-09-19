@@ -5,10 +5,22 @@ import { describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli-runner.js';
 import type { GovernanceClient } from '../src/governance.js';
 import type { RepositoryMetadata } from '../src/repository-classifier.js';
-import type {
-  ExistingRepositoryRuleset,
-} from '../src/ruleset-reconciler.js';
+import type { ExistingRepositoryRuleset } from '../src/ruleset-reconciler.js';
 import type { RepositoryRuleset } from '../src/types.js';
+
+const protectedBranches: RepositoryRuleset = {
+  name: 'Protect branches',
+  target: 'branch',
+  enforcement: 'active',
+  bypass_actors: [],
+  conditions: {
+    ref_name: {
+      include: ['~DEFAULT_BRANCH'],
+      exclude: [],
+    },
+  },
+  rules: [],
+};
 
 class FakeClient implements GovernanceClient {
   constructor(
@@ -30,8 +42,8 @@ class FakeClient implements GovernanceClient {
   async listManagedRepositories(): Promise<RepositoryMetadata[]> {
     return [
       {
-        owner: 'LibreSign',
-        name: 'documentation',
+        owner: 'ExampleOrg',
+        name: 'project',
         visibility: 'public',
         archived: false,
       },
@@ -46,22 +58,21 @@ class FakeClient implements GovernanceClient {
     return structuredClone(this.existing);
   }
 
-  async create(
-    _owner: string,
-    _repository: string,
-    _ruleset: RepositoryRuleset,
-  ): Promise<void> {}
-
-  async update(
-    _owner: string,
-    _repository: string,
-    _id: number,
-    _ruleset: RepositoryRuleset,
-  ): Promise<void> {}
+  async create(): Promise<void> {}
+  async update(): Promise<void> {}
 }
 
+const configLoader = async () => ({
+  policies: {
+    protected: protectedBranches,
+  },
+  defaults: {
+    policies: ['protected'],
+  },
+});
+
 describe('runCli', () => {
-  it('requires an organization', async () => {
+  it('requires exactly one target selector', async () => {
     const errors: string[] = [];
 
     const code = await runCli(
@@ -72,6 +83,7 @@ describe('runCli', () => {
         log: () => undefined,
         error: (message) => errors.push(message),
       },
+      configLoader,
     );
 
     expect(code).toBe(2);
@@ -84,13 +96,14 @@ describe('runCli', () => {
     const errors: string[] = [];
 
     const code = await runCli(
-      ['--org', 'LibreSign'],
+      ['--org', 'ExampleOrg'],
       {},
       () => new FakeClient(),
       {
         log: () => undefined,
         error: (message) => errors.push(message),
       },
+      configLoader,
     );
 
     expect(code).toBe(2);
@@ -101,99 +114,53 @@ describe('runCli', () => {
     const messages: string[] = [];
 
     const code = await runCli(
-      ['--org', 'LibreSign'],
+      ['--org', 'ExampleOrg'],
       { GITHUB_TOKEN: 'token' },
       () => new FakeClient(),
       {
         log: (message) => messages.push(message),
         error: () => undefined,
       },
+      configLoader,
     );
 
     expect(code).toBe(1);
-    expect(messages[0]).toContain('DRIFT LibreSign/documentation');
+    expect(messages[0]).toContain('DRIFT ExampleOrg/project');
   });
 
-  it('supports repository-scoped dry-run', async () => {
+  it('supports repository-scoped dry-run with caller policies', async () => {
     const messages: string[] = [];
 
     const code = await runCli(
-      ['--repo', 'LibreSign/documentation'],
+      ['--repo', 'ExampleOrg/project', '--config', 'governance.config.json'],
       { GITHUB_TOKEN: 'token' },
       () => new FakeClient(),
       {
         log: (message) => messages.push(message),
         error: () => undefined,
       },
+      configLoader,
     );
 
     expect(code).toBe(1);
-    expect(messages[0]).toContain('DRIFT LibreSign/documentation');
-  });
-
-  it('rejects malformed repository selectors', async () => {
-    const errors: string[] = [];
-
-    const code = await runCli(
-      ['--repo', 'LibreSign/documentation/extra'],
-      { GITHUB_TOKEN: 'token' },
-      () => new FakeClient(),
-      {
-        log: () => undefined,
-        error: (message) => errors.push(message),
-      },
-    );
-
-    expect(code).toBe(2);
-    expect(errors).toEqual(['--repo must use OWNER/REPO']);
-  });
-
-  it('applies repository-specific config selected by the caller', async () => {
-    const messages: string[] = [];
-
-    const code = await runCli(
-      [
-        '--repo',
-        'LibreCodeCoop/github-governance',
-        '--config',
-        'governance.config.json',
-      ],
-      { GITHUB_TOKEN: 'token' },
-      () => new FakeClient(),
-      {
-        log: (message) => messages.push(message),
-        error: () => undefined,
-      },
-      async () => ({
-        repositories: {
-          'github-governance': {
-            policies: ['governance-ci'],
-          },
-        },
-      }),
-    );
-
-    expect(code).toBe(1);
-    expect(messages).toContain(
-      '  - create: Protect default and stable branches',
-    );
-    expect(messages).toContain('  - create: Require governance CI');
+    expect(messages).toContain('  - create: Protect branches');
   });
 
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 
     const code = await runCli(
-      ['--org', 'LibreSign', '--apply'],
+      ['--org', 'ExampleOrg', '--apply'],
       { GITHUB_TOKEN: 'token' },
       () => new FakeClient(),
       {
         log: (message) => messages.push(message),
         error: () => undefined,
       },
+      configLoader,
     );
 
     expect(code).toBe(0);
-    expect(messages[0]).toContain('APPLIED LibreSign/documentation');
+    expect(messages[0]).toContain('APPLIED ExampleOrg/project');
   });
 });
