@@ -1,0 +1,9 @@
+{
+  "repositories": {
+    "github-governance": {
+      "policies": [
+        "governance-ci"
+      ]
+    }
+  }
+}
