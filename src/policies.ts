@@ -67,3 +67,8 @@ export const governanceRepositoryCiRuleset: RepositoryRuleset = {
     },
   ],
 };
+
+
+export const namedRulesets: Record<string, RepositoryRuleset> = {
+  'governance-ci': governanceRepositoryCiRuleset,
+};
