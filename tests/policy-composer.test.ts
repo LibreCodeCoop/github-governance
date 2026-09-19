@@ -79,18 +79,37 @@ describe('composeRepositoryPolicy', () => {
     ).toEqual([]);
   });
 
-  it('adds repository-specific CI policy only to github-governance', () => {
-    const policy = composeRepositoryPolicy({
-      owner: 'LibreCodeCoop',
-      name: 'github-governance',
-      isPublic: true,
-      isArchived: false,
-      isNextcloudApp: false,
-    });
+  it('adds repository-specific rulesets only when explicitly selected', () => {
+    const extraRuleset = {
+      name: 'Repository-specific CI',
+      target: 'branch' as const,
+      enforcement: 'active' as const,
+      bypass_actors: [],
+      conditions: {
+        ref_name: {
+          include: ['~DEFAULT_BRANCH'],
+          exclude: [],
+        },
+      },
+      rules: [],
+    };
+
+    const policy = composeRepositoryPolicy(
+      {
+        owner: 'LibreSign',
+        name: '.github',
+        isPublic: true,
+        isArchived: false,
+        isNextcloudApp: false,
+      },
+      {
+        extraRulesets: [extraRuleset],
+      },
+    );
 
     expect(policy.rulesets.map((ruleset) => ruleset.name)).toEqual([
       'Protect default and stable branches',
-      'Require governance CI',
+      'Repository-specific CI',
     ]);
   });
 
