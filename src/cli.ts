@@ -1,7 +1,7 @@
+#!/usr/bin/env node
+
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-#!/usr/bin/env node
 
 import { runCli } from './cli-runner.js';
 import { GitHubClient } from './github-client.js';
