@@ -51,7 +51,7 @@ describe('validateGovernanceConfig', () => {
   });
 
   it('rejects invalid nested scalar types with a precise path', () => {
-    const config = structuredClone(validConfig);
+    const config = structuredClone(validConfig) as any;
     config.policies.protected.rules[2].parameters.required_approving_review_count =
       '1';
 
@@ -61,7 +61,7 @@ describe('validateGovernanceConfig', () => {
   });
 
   it('rejects unsupported rule types', () => {
-    const config = structuredClone(validConfig);
+    const config = structuredClone(validConfig) as any;
     config.policies.protected.rules = [{ type: 'creation' }];
 
     expect(() => validateGovernanceConfig(config)).toThrow(
@@ -70,7 +70,7 @@ describe('validateGovernanceConfig', () => {
   });
 
   it('rejects invalid bypass actors', () => {
-    const config = structuredClone(validConfig);
+    const config = structuredClone(validConfig) as any;
     config.policies.protected.bypass_actors = [
       {
         actor_id: 1,
