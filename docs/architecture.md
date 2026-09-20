@@ -36,9 +36,10 @@ actor IDs, or product-specific file paths to reconcile policy.
 
 Repository-scoped execution is preferred for production changes.
 
-A caller can enumerate repositories with read-only permissions, generate a
-short-lived GitHub App token restricted to one repository, and invoke the
-governance action for that repository.
+A caller uses a short-lived organization installation token only for repository
+discovery, then generates a separate short-lived GitHub App token restricted to
+one repository for reconciliation. The organization-wide token is intentionally
+limited to the discovery job; mutation-capable tokens remain repository-scoped.
 
 The CLI is dry-run by default. Mutation requires an explicit `--apply`.
 
