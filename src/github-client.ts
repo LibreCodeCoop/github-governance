@@ -4,16 +4,16 @@
 import type {
   RepositoryMetadata,
   GitHubContentProbe,
-} from './repository-classifier.js';
+} from './repository-classifier.ts';
 import type {
   ExistingRepositoryRuleset,
   RepositoryRulesetClient,
-} from './ruleset-reconciler.js';
+} from './ruleset-reconciler.ts';
 import type {
   BypassActor,
   RepositoryRuleset,
   RulesetRule,
-} from './types.js';
+} from './types.ts';
 
 type FetchLike = typeof fetch;
 
