@@ -26,15 +26,6 @@ runs:
         node-version: 24
         package-manager-cache: false
 
-    - name: Install governance dependencies
-      shell: bash
-      working-directory: ${{ github.action_path }}/..
-      run: npm install --ignore-scripts
-
-    - name: Build governance CLI
-      shell: bash
-      working-directory: ${{ github.action_path }}/..
-      run: npm run build
 
     - name: Discover repositories
       id: discover
@@ -44,5 +35,5 @@ runs:
         ORGANIZATION: ${{ inputs.organization }}
       working-directory: ${{ github.action_path }}/..
       run: |
-        repositories="$(node dist/discover-repositories.js "$ORGANIZATION")"
+        repositories="$(node src/discover-repositories.ts "$ORGANIZATION")"
         echo "repositories=$repositories" >> "$GITHUB_OUTPUT"
