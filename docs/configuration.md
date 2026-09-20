@@ -99,4 +99,9 @@ ruleset responses without write access. Dry-run safety therefore comes from the
 engine's explicit `apply=false` behavior rather than from reducing the token to
 administration read-only access.
 
-Callers that use `file_exists` conditions must also request `contents: read`.
+The current managed scope is public, non-archived repositories. Public content
+probes used by `file_exists` have been validated without requesting a separate
+`contents: read` permission from the GitHub App installation. If private or
+internal repository management is added later, the content-probe permission
+model must be reviewed explicitly rather than assuming the public-repository
+behavior applies.
