@@ -73,6 +73,9 @@
               },
               {
                 "context": "TypeScript"
+              },
+              {
+                "context": "CodeQL"
               }
             ],
             "strict_required_status_checks_policy": true,
