@@ -34,11 +34,19 @@ type RulesetSummary = {
 export class GitHubClient
   implements GitHubContentProbe, RepositoryRulesetClient
 {
+  private readonly token: string;
+  private readonly fetchImpl: FetchLike;
+  private readonly apiUrl: string;
+
   constructor(
-    private readonly token: string,
-    private readonly fetchImpl: FetchLike = fetch,
-    private readonly apiUrl = 'https://api.github.com',
-  ) {}
+    token: string,
+    fetchImpl: FetchLike = fetch,
+    apiUrl = 'https://api.github.com',
+  ) {
+    this.token = token;
+    this.fetchImpl = fetchImpl;
+    this.apiUrl = apiUrl;
+  }
 
   async getRepository(
     owner: string,
