@@ -29,6 +29,23 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - name: Verify native TypeScript action runtime
+        shell: bash
+        run: |
+          set +e
+          output="$(node src/cli.ts 2>&1)"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -F "Specify exactly one of --org OWNER or --repo OWNER/REPO" <<< "$output"
+
+          set +e
+          output="$(node src/discover-repositories.ts 2>&1)"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -F "Usage: discover-repositories ORGANIZATION" <<< "$output"
+
       - name: Install dependencies
         run: npm install --ignore-scripts
 

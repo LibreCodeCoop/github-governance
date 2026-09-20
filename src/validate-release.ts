@@ -5,7 +5,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { validateRelease } from './release-validator.js';
+import { validateRelease } from './release-validator.ts';
 
 const requestedVersion = process.argv[2];
 

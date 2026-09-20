@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+.github/workflows/** @vitormattos
+.github/dependabot.yml @vitormattos
+governance.config.json @vitormattos
+action.yml @vitormattos
+discover/action.yml @vitormattos
+SECURITY.md @vitormattos
+docs/** @vitormattos

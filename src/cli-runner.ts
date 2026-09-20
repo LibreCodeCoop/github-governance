@@ -5,14 +5,14 @@ import {
   loadGovernanceConfig,
   resolveRepositoryRulesets,
   type GovernanceConfig,
-} from './config.js';
-import type { GovernanceClient } from './governance.js';
+} from './config.ts';
+import type { GovernanceClient } from './governance.ts';
 import {
   planOrganization,
   planRepository,
   syncOrganization,
   syncRepository,
-} from './governance.js';
+} from './governance.ts';
 
 export type CliEnvironment = {
   GITHUB_TOKEN?: string | undefined;

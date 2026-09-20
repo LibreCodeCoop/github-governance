@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { RepositoryRuleset, RulesetRule } from './types.js';
+import type { RepositoryRuleset, RulesetRule } from './types.ts';
 
 function normalizeRule(rule: RulesetRule): RulesetRule {
   if (rule.type === 'pull_request') {

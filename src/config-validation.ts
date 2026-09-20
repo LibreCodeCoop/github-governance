@@ -5,12 +5,12 @@ import type {
   BypassActor,
   RepositoryRuleset,
   RulesetRule,
-} from './types.js';
+} from './types.ts';
 import type {
   ConditionalGovernanceConfig,
   GovernanceConfig,
   RepositoryGovernanceConfig,
-} from './config.js';
+} from './config.ts';
 
 export function validateGovernanceConfig(value: unknown): GovernanceConfig {
   const root = expectRecord(value, '$');

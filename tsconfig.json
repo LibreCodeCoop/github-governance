@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "types": [
       "node"
-    ]
+    ],
+    "rewriteRelativeImportExtensions": true
   },
   "include": [
     "src/**/*.ts",

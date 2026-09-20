@@ -28,15 +28,6 @@ runs:
         node-version: 24
         package-manager-cache: false
 
-    - name: Install governance dependencies
-      shell: bash
-      working-directory: ${{ github.action_path }}
-      run: npm install --ignore-scripts
-
-    - name: Build governance CLI
-      shell: bash
-      working-directory: ${{ github.action_path }}
-      run: npm run build
 
     - name: Reconcile rulesets
       shell: bash
@@ -56,4 +47,4 @@ runs:
           args+=(--apply)
         fi
 
-        node dist/cli.js "${args[@]}"
+        node src/cli.ts "${args[@]}"
