@@ -5,12 +5,12 @@ import { readFile } from 'node:fs/promises';
 import type {
   BypassActor,
   RepositoryRuleset,
-} from './types.js';
+} from './types.ts';
 import type {
   GitHubContentProbe,
   RepositoryMetadata,
-} from './repository-classifier.js';
-import { validateGovernanceConfig } from './config-validation.js';
+} from './repository-classifier.ts';
+import { validateGovernanceConfig } from './config-validation.ts';
 
 export type RepositoryGovernanceConfig = {
   policies?: string[];
