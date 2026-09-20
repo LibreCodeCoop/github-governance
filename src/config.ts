@@ -10,6 +10,7 @@ import type {
   GitHubContentProbe,
   RepositoryMetadata,
 } from './repository-classifier.js';
+import { validateGovernanceConfig } from './config-validation.js';
 
 export type RepositoryGovernanceConfig = {
   policies?: string[];
@@ -40,11 +41,7 @@ export async function loadGovernanceConfig(
   }
 
   const parsed: unknown = JSON.parse(await readFile(path, 'utf8'));
-  if (!isRecord(parsed)) {
-    throw new Error('Governance config must be a JSON object');
-  }
-
-  return parsed as GovernanceConfig;
+  return validateGovernanceConfig(parsed);
 }
 
 export async function resolveRepositoryRulesets(
@@ -132,8 +129,4 @@ function applyBypassActors(
       }
     }
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
