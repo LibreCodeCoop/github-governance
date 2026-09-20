@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { discoverPublicRepositories } from './repository-discovery.js';
+import { discoverPublicRepositories } from './repository-discovery.ts';
 
 const organization = process.argv[2];
 
