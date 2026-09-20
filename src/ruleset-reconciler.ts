@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { RepositoryRuleset } from './types.js';
-import { rulesetsEqual } from './ruleset-normalizer.js';
+import type { RepositoryRuleset } from './types.ts';
+import { rulesetsEqual } from './ruleset-normalizer.ts';
 
 export type ExistingRepositoryRuleset = RepositoryRuleset & {
   id: number;
