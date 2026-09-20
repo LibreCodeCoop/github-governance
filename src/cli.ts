@@ -3,8 +3,8 @@
 // SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { runCli } from './cli-runner.js';
-import { GitHubClient } from './github-client.js';
+import { runCli } from './cli-runner.ts';
+import { GitHubClient } from './github-client.ts';
 
 const code = await runCli(
   process.argv.slice(2),
