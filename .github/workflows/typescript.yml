@@ -36,6 +36,7 @@ jobs:
           output="$(node src/cli.ts 2>&1)"
           status=$?
           set -e
+          printf 'cli status=%s\n%s\n' "$status" "$output"
           test "$status" -eq 2
           grep -F "Specify exactly one of --org OWNER or --repo OWNER/REPO" <<< "$output"
 
@@ -43,6 +44,7 @@ jobs:
           output="$(node src/discover-repositories.ts 2>&1)"
           status=$?
           set -e
+          printf 'discover status=%s\n%s\n' "$status" "$output"
           test "$status" -eq 2
           grep -F "Usage: discover-repositories ORGANIZATION" <<< "$output"
 
