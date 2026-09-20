@@ -6,12 +6,12 @@ import {
   reconcileRepositoryRulesets,
   type RepositoryRulesetClient,
   type RulesetChange,
-} from './ruleset-reconciler.js';
+} from './ruleset-reconciler.ts';
 import type {
   GitHubContentProbe,
   RepositoryMetadata,
-} from './repository-classifier.js';
-import type { RepositoryRuleset } from './types.js';
+} from './repository-classifier.ts';
+import type { RepositoryRuleset } from './types.ts';
 
 export interface GovernanceClient
   extends GitHubContentProbe,
