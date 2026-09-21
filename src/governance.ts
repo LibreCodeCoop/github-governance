@@ -62,10 +62,12 @@ export async function planRepository(
 ): Promise<RepositoryPlan> {
   const existing = await client.list(repository.owner, repository.name);
 
+  const metadata = planRepositoryMetadata(repository, desiredMetadata);
+
   return {
     repository: `${repository.owner}/${repository.name}`,
     changes: planRepositoryRulesets(existing, desiredRulesets),
-    metadata: planRepositoryMetadata(repository, desiredMetadata),
+    ...(metadata === undefined ? {} : { metadata }),
   };
 }
 
