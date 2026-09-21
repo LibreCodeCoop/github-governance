@@ -36,6 +36,9 @@ class FakeClient implements GovernanceClient {
       name: repository,
       visibility: 'public',
       archived: false,
+      description: null,
+      homepage: null,
+      topics: [],
     };
   }
 
@@ -46,6 +49,9 @@ class FakeClient implements GovernanceClient {
         name: 'project',
         visibility: 'public',
         archived: false,
+        description: null,
+        homepage: null,
+        topics: [],
       },
     ];
   }
@@ -60,6 +66,7 @@ class FakeClient implements GovernanceClient {
 
   async create(): Promise<void> {}
   async update(): Promise<void> {}
+  async updateRepositoryMetadata(): Promise<void> {}
 }
 
 const configLoader = async () => ({
