@@ -12,9 +12,16 @@ import type {
 } from './repository-classifier.ts';
 import { validateGovernanceConfig } from './config-validation.ts';
 
+export type RepositoryPresentation = {
+  description?: string;
+  homepage?: string;
+  topics?: string[];
+};
+
 export type RepositoryGovernanceConfig = {
   policies?: string[];
   rulesets?: RepositoryRuleset[];
+  metadata?: RepositoryPresentation;
 };
 
 export type ConditionalGovernanceConfig = {
@@ -42,6 +49,18 @@ export async function loadGovernanceConfig(
 
   const parsed: unknown = JSON.parse(await readFile(path, 'utf8'));
   return validateGovernanceConfig(parsed);
+}
+
+export function resolveRepositoryMetadata(
+  config: GovernanceConfig,
+  repository: RepositoryMetadata,
+): RepositoryPresentation | undefined {
+  if (repository.visibility !== 'public' || repository.archived) {
+    return undefined;
+  }
+
+  const metadata = config.repositories?.[repository.name]?.metadata;
+  return metadata ? structuredClone(metadata) : undefined;
 }
 
 export async function resolveRepositoryRulesets(
