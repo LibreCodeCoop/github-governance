@@ -59,7 +59,7 @@ export function resolveRepositoryMetadata(
     return undefined;
   }
 
-  const metadata = config.repositories?.[repository.name]?.metadata;
+  const metadata = repositorySelection(config, repository)?.metadata;
   return metadata ? structuredClone(metadata) : undefined;
 }
 
@@ -76,7 +76,7 @@ export async function resolveRepositoryRulesets(
 
   applySelection(config, config.defaults, resolved);
 
-  applySelection(config, config.repositories?.[repository.name], resolved);
+  applySelection(config, repositorySelection(config, repository), resolved);
 
   for (const condition of config.conditions ?? []) {
     if (
@@ -92,6 +92,14 @@ export async function resolveRepositoryRulesets(
   }
 
   return [...resolved.values()].map((ruleset) => structuredClone(ruleset));
+}
+
+function repositorySelection(
+  config: GovernanceConfig,
+  repository: RepositoryMetadata,
+): RepositoryGovernanceConfig | undefined {
+  return config.repositories?.[`${repository.owner}/${repository.name}`]
+    ?? config.repositories?.[repository.name];
 }
 
 function applySelection(
