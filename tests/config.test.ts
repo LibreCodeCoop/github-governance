@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest';
-import { resolveRepositoryRulesets } from '../src/config.js';
+import { resolveRepositoryMetadata, resolveRepositoryRulesets } from '../src/config.js';
 import type { GovernanceConfig } from '../src/config.js';
 
 const protectedBranches = {
@@ -53,6 +53,9 @@ describe('resolveRepositoryRulesets', () => {
         name: 'project',
         visibility: 'public',
         archived: false,
+        description: null,
+        homepage: null,
+        topics: [],
       },
       { exists: async () => false },
     );
@@ -68,6 +71,9 @@ describe('resolveRepositoryRulesets', () => {
         name: 'project',
         visibility: 'public',
         archived: false,
+        description: null,
+        homepage: null,
+        topics: [],
       },
       { exists: async () => true },
     );
@@ -113,6 +119,9 @@ describe('resolveRepositoryRulesets', () => {
         name: 'special',
         visibility: 'public',
         archived: false,
+        description: null,
+        homepage: null,
+        topics: [],
       },
       { exists: async () => false },
     );
@@ -132,6 +141,9 @@ describe('resolveRepositoryRulesets', () => {
           name: 'private',
           visibility: 'private',
           archived: false,
+          description: null,
+          homepage: null,
+          topics: [],
         },
         { exists: async () => true },
       ),
@@ -145,6 +157,9 @@ describe('resolveRepositoryRulesets', () => {
           name: 'archive',
           visibility: 'public',
           archived: true,
+          description: null,
+          homepage: null,
+          topics: [],
         },
         { exists: async () => true },
       ),
@@ -164,6 +179,9 @@ describe('resolveRepositoryRulesets', () => {
           name: 'project',
           visibility: 'public',
           archived: false,
+          description: null,
+          homepage: null,
+          topics: [],
         },
         { exists: async () => false },
       ),
@@ -179,6 +197,9 @@ describe('resolveRepositoryRulesets', () => {
           name: 'project',
           visibility: 'public',
           archived: false,
+          description: null,
+          homepage: null,
+          topics: [],
         },
         {
           exists: async () => {
@@ -187,5 +208,39 @@ describe('resolveRepositoryRulesets', () => {
         },
       ),
     ).rejects.toThrow('HTTP 403');
+  });
+});
+
+
+describe('resolveRepositoryMetadata', () => {
+  it('prefers owner-qualified repository configuration over a name-only fallback', () => {
+    const repository = {
+      owner: 'ExampleOrg',
+      name: 'project',
+      visibility: 'public' as const,
+      archived: false,
+      description: null,
+      homepage: null,
+      topics: [],
+    };
+
+    expect(
+      resolveRepositoryMetadata(
+        {
+          repositories: {
+            project: {
+              metadata: { description: 'fallback' },
+            },
+            'ExampleOrg/project': {
+              metadata: { description: 'qualified', topics: ['hacktoberfest'] },
+            },
+          },
+        },
+        repository,
+      ),
+    ).toEqual({
+      description: 'qualified',
+      topics: ['hacktoberfest'],
+    });
   });
 });

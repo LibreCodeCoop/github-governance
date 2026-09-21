@@ -3,6 +3,7 @@
 
 import {
   loadGovernanceConfig,
+  resolveRepositoryMetadata,
   resolveRepositoryRulesets,
   type GovernanceConfig,
 } from './config.ts';
@@ -57,7 +58,19 @@ export async function runCli(
     name: string;
     visibility: 'public' | 'private' | 'internal';
     archived: boolean;
+    description: string | null;
+    homepage: string | null;
+    topics: string[];
   }) => resolveRepositoryRulesets(config, repository, client);
+  const resolveMetadata = (repository: {
+    owner: string;
+    name: string;
+    visibility: 'public' | 'private' | 'internal';
+    archived: boolean;
+    description: string | null;
+    homepage: string | null;
+    topics: string[];
+  }) => resolveRepositoryMetadata(config, repository);
 
   if (repositoryArgument) {
     const [owner, repository, ...extra] = repositoryArgument.split('/');
@@ -68,17 +81,18 @@ export async function runCli(
 
     const metadata = await client.getRepository(owner, repository);
     const desiredRulesets = await resolveRulesets(metadata);
+    const desiredMetadata = resolveMetadata(metadata);
     const plan = apply
-      ? await syncRepository(client, metadata, desiredRulesets)
-      : await planRepository(client, metadata, desiredRulesets);
+      ? await syncRepository(client, metadata, desiredRulesets, desiredMetadata)
+      : await planRepository(client, metadata, desiredRulesets, desiredMetadata);
 
     writePlans([plan], apply, output);
     return !apply && hasDrift([plan]) ? 1 : 0;
   }
 
   const plans = apply
-    ? await syncOrganization(client, organization!, resolveRulesets)
-    : await planOrganization(client, organization!, resolveRulesets);
+    ? await syncOrganization(client, organization!, resolveRulesets, resolveMetadata)
+    : await planOrganization(client, organization!, resolveRulesets, resolveMetadata);
 
   writePlans(plans, apply, output);
   return !apply && hasDrift(plans) ? 1 : 0;
@@ -94,7 +108,9 @@ function writePlans(
       (change) => change.action !== 'unchanged',
     );
 
-    if (changes.length === 0) {
+    const metadataDrift = plan.metadata?.action === 'update';
+
+    if (changes.length === 0 && !metadataDrift) {
       output.log(`OK ${plan.repository}`);
       continue;
     }
@@ -103,14 +119,19 @@ function writePlans(
     for (const change of changes) {
       output.log(`  - ${change.action}: ${change.desired.name}`);
     }
+    if (metadataDrift) {
+      output.log(`  - update metadata: ${plan.metadata!.fields.join(', ')}`);
+    }
   }
 }
 
 function hasDrift(
   plans: Awaited<ReturnType<typeof planOrganization>>,
 ): boolean {
-  return plans.some((plan) =>
-    plan.changes.some((change) => change.action !== 'unchanged'),
+  return plans.some(
+    (plan) =>
+      plan.changes.some((change) => change.action !== 'unchanged') ||
+      plan.metadata?.action === 'update',
   );
 }
 

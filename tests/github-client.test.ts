@@ -34,6 +34,9 @@ describe('GitHubClient', () => {
           owner: { login: 'ExampleOrg' },
           visibility: 'public',
           archived: false,
+          description: 'Project description',
+          homepage: 'https://example.test',
+          topics: ['existing-topic'],
         }),
       },
     ];
@@ -51,6 +54,9 @@ describe('GitHubClient', () => {
       name: 'project',
       visibility: 'public',
       archived: false,
+      description: 'Project description',
+      homepage: 'https://example.test',
+      topics: ['existing-topic'],
     });
     expect(requests).toHaveLength(0);
   });
@@ -66,24 +72,36 @@ describe('GitHubClient', () => {
               owner: { login: 'ExampleOrg' },
               visibility: 'public',
               archived: false,
+              description: null,
+              homepage: null,
+              topics: [],
             },
             {
               name: 'archive',
               owner: { login: 'ExampleOrg' },
               visibility: 'public',
               archived: true,
+              description: null,
+              homepage: null,
+              topics: [],
             },
             {
               name: 'private',
               owner: { login: 'ExampleOrg' },
               visibility: 'private',
               archived: false,
+              description: null,
+              homepage: null,
+              topics: [],
             },
             {
               name: 'other',
               owner: { login: 'OtherOrg' },
               visibility: 'public',
               archived: false,
+              description: null,
+              homepage: null,
+              topics: [],
             },
           ],
         }),
@@ -102,6 +120,9 @@ describe('GitHubClient', () => {
         name: 'project',
         visibility: 'public',
         archived: false,
+        description: null,
+        homepage: null,
+        topics: [],
       },
     ]);
     expect(requests).toHaveLength(0);
@@ -218,4 +239,32 @@ describe('GitHubClient', () => {
 
     expect(requests).toHaveLength(0);
   });
+
+  it('updates repository description and preserves merged topics supplied by the planner', async () => {
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project',
+        method: 'PATCH',
+        response: Response.json({}),
+      },
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/topics',
+        method: 'PUT',
+        response: Response.json({ names: ['existing-topic', 'hacktoberfest'] }),
+      },
+    ];
+    const client = new GitHubClient(
+      'token',
+      fakeFetch(requests),
+      'https://api.github.test',
+    );
+
+    await client.updateRepositoryMetadata('ExampleOrg', 'project', {
+      description: 'Project description',
+      topics: ['existing-topic', 'hacktoberfest'],
+    });
+
+    expect(requests).toHaveLength(0);
+  });
+
 });

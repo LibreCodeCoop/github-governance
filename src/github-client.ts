@@ -21,6 +21,9 @@ type GitHubRepository = {
   name?: unknown;
   archived?: unknown;
   visibility?: unknown;
+  description?: unknown;
+  homepage?: unknown;
+  topics?: unknown;
   owner?: {
     login?: unknown;
   };
@@ -60,6 +63,9 @@ export class GitHubClient
     const login = data.owner?.login;
     const visibility = data.visibility;
     const archived = data.archived;
+    const description = data.description;
+    const homepage = data.homepage;
+    const topics = data.topics;
 
     if (
       login !== owner ||
@@ -69,7 +75,10 @@ export class GitHubClient
         visibility === 'private' ||
         visibility === 'internal'
       ) ||
-      typeof archived !== 'boolean'
+      typeof archived !== 'boolean' ||
+      !(typeof description === 'string' || description === null || description === undefined) ||
+      !(typeof homepage === 'string' || homepage === null || homepage === undefined) ||
+      !(topics === undefined || (Array.isArray(topics) && topics.every((topic) => typeof topic === 'string')))
     ) {
       throw new Error(`Invalid repository response for ${owner}/${repository}`);
     }
@@ -79,6 +88,9 @@ export class GitHubClient
       name,
       visibility,
       archived,
+      description: typeof description === 'string' ? description : null,
+      homepage: typeof homepage === 'string' && homepage !== '' ? homepage : null,
+      topics: Array.isArray(topics) ? topics as string[] : [],
     };
   }
 
@@ -100,6 +112,9 @@ export class GitHubClient
         const name = repository.name;
         const visibility = repository.visibility;
         const archived = repository.archived;
+        const description = repository.description;
+        const homepage = repository.homepage;
+        const topics = repository.topics;
 
         if (
           owner === organization &&
@@ -114,6 +129,9 @@ export class GitHubClient
             name,
             visibility,
             archived,
+            description: typeof description === 'string' ? description : null,
+            homepage: typeof homepage === 'string' && homepage !== '' ? homepage : null,
+            topics: Array.isArray(topics) && topics.every((topic) => typeof topic === 'string') ? topics as string[] : [],
           });
         }
       }
@@ -127,6 +145,32 @@ export class GitHubClient
       (repository) =>
         repository.visibility === 'public' && !repository.archived,
     );
+  }
+
+  async updateRepositoryMetadata(
+    owner: string,
+    repository: string,
+    metadata: { description?: string; homepage?: string; topics?: string[] },
+  ): Promise<void> {
+    const body: Record<string, unknown> = {};
+    if (metadata.description !== undefined) {
+      body.description = metadata.description;
+    }
+    if (metadata.homepage !== undefined) {
+      body.homepage = metadata.homepage;
+    }
+    if (Object.keys(body).length > 0) {
+      await this.requestJson(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`,
+        { method: 'PATCH', body: JSON.stringify(body) },
+      );
+    }
+    if (metadata.topics !== undefined) {
+      await this.requestJson(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/topics`,
+        { method: 'PUT', body: JSON.stringify({ names: metadata.topics }) },
+      );
+    }
   }
 
   async exists(

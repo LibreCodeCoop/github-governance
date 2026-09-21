@@ -12,9 +12,16 @@ import type {
 } from './repository-classifier.ts';
 import { validateGovernanceConfig } from './config-validation.ts';
 
+export type RepositoryPresentation = {
+  description?: string;
+  homepage?: string;
+  topics?: string[];
+};
+
 export type RepositoryGovernanceConfig = {
   policies?: string[];
   rulesets?: RepositoryRuleset[];
+  metadata?: RepositoryPresentation;
 };
 
 export type ConditionalGovernanceConfig = {
@@ -44,6 +51,18 @@ export async function loadGovernanceConfig(
   return validateGovernanceConfig(parsed);
 }
 
+export function resolveRepositoryMetadata(
+  config: GovernanceConfig,
+  repository: RepositoryMetadata,
+): RepositoryPresentation | undefined {
+  if (repository.visibility !== 'public' || repository.archived) {
+    return undefined;
+  }
+
+  const metadata = repositorySelection(config, repository)?.metadata;
+  return metadata ? structuredClone(metadata) : undefined;
+}
+
 export async function resolveRepositoryRulesets(
   config: GovernanceConfig,
   repository: RepositoryMetadata,
@@ -57,7 +76,7 @@ export async function resolveRepositoryRulesets(
 
   applySelection(config, config.defaults, resolved);
 
-  applySelection(config, config.repositories?.[repository.name], resolved);
+  applySelection(config, repositorySelection(config, repository), resolved);
 
   for (const condition of config.conditions ?? []) {
     if (
@@ -73,6 +92,14 @@ export async function resolveRepositoryRulesets(
   }
 
   return [...resolved.values()].map((ruleset) => structuredClone(ruleset));
+}
+
+function repositorySelection(
+  config: GovernanceConfig,
+  repository: RepositoryMetadata,
+): RepositoryGovernanceConfig | undefined {
+  return config.repositories?.[`${repository.owner}/${repository.name}`]
+    ?? config.repositories?.[repository.name];
 }
 
 function applySelection(

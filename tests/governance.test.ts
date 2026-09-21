@@ -67,6 +67,10 @@ class FakeGovernanceClient
   async update(): Promise<void> {
     throw new Error('not expected in planning');
   }
+
+  async updateRepositoryMetadata(): Promise<void> {
+    throw new Error('not expected in planning');
+  }
 }
 
 describe('planOrganization', () => {
@@ -78,12 +82,18 @@ describe('planOrganization', () => {
           name: 'one',
           visibility: 'public',
           archived: false,
+          description: null,
+          homepage: null,
+          topics: [],
         },
         {
           owner: 'ExampleOrg',
           name: 'two',
           visibility: 'public',
           archived: false,
+          description: null,
+          homepage: null,
+          topics: [],
         },
       ],
       new Map([
@@ -107,4 +117,46 @@ describe('planOrganization', () => {
       changes: [{ action: 'create' }],
     });
   });
+
+  it('plans metadata drift without removing existing topics', async () => {
+    const client = new FakeGovernanceClient(
+      [
+        {
+          owner: 'ExampleOrg',
+          name: 'project',
+          visibility: 'public',
+          archived: false,
+          description: null,
+          homepage: null,
+          topics: ['existing-topic'],
+        },
+      ],
+      new Map(),
+    );
+
+    const plans = await planOrganization(
+      client,
+      'ExampleOrg',
+      () => [],
+      () => ({
+        description: 'Project description',
+        topics: ['hacktoberfest', 'existing-topic'],
+      }),
+    );
+
+    expect(plans[0]?.metadata).toEqual({
+      action: 'update',
+      fields: ['description', 'topics'],
+      current: {
+        description: null,
+        homepage: null,
+        topics: ['existing-topic'],
+      },
+      desired: {
+        description: 'Project description',
+        topics: ['existing-topic', 'hacktoberfest'],
+      },
+    });
+  });
+
 });

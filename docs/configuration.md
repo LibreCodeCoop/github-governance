@@ -91,6 +91,33 @@ Add or replace policy selection for a repository by repository name.
 Repository-specific selection is useful when one repository has stronger CI or
 review requirements than the organization default.
 
+
+Repository entries may use either the repository name or the fully qualified
+`owner/repository` form. The fully qualified form takes precedence and should
+be used when one configuration is shared across organizations or repository
+names may collide.
+
+Repository entries may also declare presentation metadata:
+
+```json
+{
+  "repositories": {
+    "ExampleOrg/project": {
+      "metadata": {
+        "description": "Example project",
+        "homepage": "https://example.test",
+        "topics": ["hacktoberfest", "automation"]
+      }
+    }
+  }
+}
+```
+
+Configured `description` and `homepage` are exact desired values. Configured
+topics are a required minimum set: governance adds missing topics but preserves
+other existing topics. This prevents governance from deleting useful discovery
+metadata maintained by a project.
+
 ### `conditions`
 
 Apply generic behavior based on repository properties. The currently supported

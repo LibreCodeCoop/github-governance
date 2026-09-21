@@ -37,6 +37,15 @@ const validConfig = {
   defaults: {
     policies: ['protected'],
   },
+  repositories: {
+    'ExampleOrg/project': {
+      metadata: {
+        description: 'Example project',
+        homepage: 'https://example.test',
+        topics: ['hacktoberfest', 'example'],
+      },
+    },
+  },
 };
 
 describe('validateGovernanceConfig', () => {
@@ -83,4 +92,14 @@ describe('validateGovernanceConfig', () => {
       '$.policies.protected.bypass_actors[0].actor_type',
     );
   });
+
+  it('rejects unsupported repository metadata keys', () => {
+    const config = structuredClone(validConfig) as any;
+    config.repositories['ExampleOrg/project'].metadata.typo = true;
+
+    expect(() => validateGovernanceConfig(config)).toThrow(
+      '$.repositories.ExampleOrg/project.metadata.typo',
+    );
+  });
+
 });
