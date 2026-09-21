@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Bootstrap governance v0.2.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bootstrap-v0.2.0.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: v0.2.0
+      TARGET_SHA: 3755c14f01c7d544fe89da3a6daf540faa2510ce
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.TARGET_SHA }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm install --ignore-scripts
+      - run: npm run check
+      - name: Refuse to overwrite existing release
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "::error::Release ${TAG} already exists"
+            exit 1
+          fi
+      - name: Publish release
+        run: gh release create "${TAG}" --target "${TARGET_SHA}" --title "${TAG}" --generate-notes
