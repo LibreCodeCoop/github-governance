@@ -10,4 +10,7 @@ export type RepositoryMetadata = {
   name: string;
   visibility: 'public' | 'private' | 'internal';
   archived: boolean;
+  description: string | null;
+  homepage: string | null;
+  topics: string[];
 };
