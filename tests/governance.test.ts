@@ -144,7 +144,7 @@ describe('planOrganization', () => {
       }),
     );
 
-    expect(plans[0].metadata).toEqual({
+    expect(plans[0]?.metadata).toEqual({
       action: 'update',
       fields: ['description', 'topics'],
       current: {
