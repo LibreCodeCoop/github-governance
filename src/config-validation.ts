@@ -10,6 +10,7 @@ import type {
   ConditionalGovernanceConfig,
   GovernanceConfig,
   RepositoryGovernanceConfig,
+  RepositoryPresentation,
 } from './config.ts';
 
 export function validateGovernanceConfig(value: unknown): GovernanceConfig {
@@ -57,7 +58,7 @@ function validateSelection(
   path: string,
 ): RepositoryGovernanceConfig {
   const record = expectRecord(value, path);
-  rejectUnknownKeys(record, path, ['policies', 'rulesets']);
+  rejectUnknownKeys(record, path, ['policies', 'rulesets', 'metadata']);
 
   const selection: RepositoryGovernanceConfig = {};
   if ('policies' in record) {
@@ -68,7 +69,27 @@ function validateSelection(
       (ruleset, index) => validateRuleset(ruleset, `${path}.rulesets[${index}]`),
     );
   }
+  if ('metadata' in record) {
+    selection.metadata = validateMetadata(record.metadata, `${path}.metadata`);
+  }
   return selection;
+}
+
+function validateMetadata(value: unknown, path: string): RepositoryPresentation {
+  const record = expectRecord(value, path);
+  rejectUnknownKeys(record, path, ['description', 'homepage', 'topics']);
+
+  const metadata: RepositoryPresentation = {};
+  if ('description' in record) {
+    metadata.description = expectNonEmptyString(record.description, `${path}.description`);
+  }
+  if ('homepage' in record) {
+    metadata.homepage = expectNonEmptyString(record.homepage, `${path}.homepage`);
+  }
+  if ('topics' in record) {
+    metadata.topics = expectStringArray(record.topics, `${path}.topics`);
+  }
+  return metadata;
 }
 
 function validateCondition(
