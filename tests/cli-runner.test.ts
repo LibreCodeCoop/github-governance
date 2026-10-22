@@ -153,6 +153,53 @@ describe('runCli', () => {
     expect(messages).toContain('  - create: Protect branches');
   });
 
+  it('reports organization drift without failing when explicitly allowed', async () => {
+    const messages: string[] = [];
+    const code = await runCli(
+      ['--org', 'ExampleOrg', '--allow-drift'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient(),
+      {
+        log: (message) => messages.push(message),
+        error: () => undefined,
+      },
+      configLoader,
+    );
+    expect(code).toBe(0);
+    expect(messages).toContain('DRIFT ExampleOrg/project');
+  });
+
+  it('reports repository drift without failing when explicitly allowed', async () => {
+    const messages: string[] = [];
+    const code = await runCli(
+      ['--repo', 'ExampleOrg/project', '--allow-drift'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient(),
+      {
+        log: (message) => messages.push(message),
+        error: () => undefined,
+      },
+      configLoader,
+    );
+    expect(code).toBe(0);
+    expect(messages).toContain('DRIFT ExampleOrg/project');
+  });
+
+  it('does not hide API failures when drift is allowed', async () => {
+    class FailedClient extends FakeClient {
+      override async list(): Promise<ExistingRepositoryRuleset[]> {
+        throw new Error('GitHub API unavailable');
+      }
+    }
+    await expect(runCli(
+      ['--org', 'ExampleOrg', '--allow-drift'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FailedClient(),
+      { log: () => undefined, error: () => undefined },
+      configLoader,
+    )).rejects.toThrow('GitHub API unavailable');
+  });
+
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 
