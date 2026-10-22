@@ -74,13 +74,13 @@ runs:
         fi
 
         node src/cli.ts "${args[@]}" | tee "$RUNNER_TEMP/github-governance-result.txt"
-        if [[ "$ALLOW_DRIFT" == "true" ]] && grep -q '^DRIFT ' "$RUNNER_TEMP/github-governance-result.txt"; then
-          echo '::warning::Governance drift detected; review the plan before any manual apply'
+        if [[ "$ALLOW_DRIFT" == "true" ]] && grep -Eq '^(DRIFT|UNVERIFIED) ' "$RUNNER_TEMP/github-governance-result.txt"; then
+          echo '::warning::Governance has drift or bypass actors that need privileged verification'
           {
-            echo '### Repository governance drift'
-            echo 'Review these repositories before approving an apply:'
+            echo '### Repository governance plan'
+            echo 'DRIFT means confirmed differences; UNVERIFIED means GitHub concealed bypass actors.'
             echo '```text'
-            grep '^DRIFT ' "$RUNNER_TEMP/github-governance-result.txt"
+            grep -E '^(DRIFT|UNVERIFIED) ' "$RUNNER_TEMP/github-governance-result.txt"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
         fi

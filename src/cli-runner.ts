@@ -112,19 +112,28 @@ function writePlans(
 ): void {
   for (const plan of plans) {
     const changes = plan.changes.filter(
-      (change) => change.action !== 'unchanged',
+      (change) => change.action === 'create' || change.action === 'update',
+    );
+    const unverified = plan.changes.filter(
+      (change) => change.action === 'unverified',
     );
 
     const metadataDrift = plan.metadata?.action === 'update';
 
     if (changes.length === 0 && !metadataDrift) {
-      output.log(`OK ${plan.repository}`);
+      output.log(`${unverified.length > 0 ? 'UNVERIFIED' : 'OK'} ${plan.repository}`);
+      for (const change of unverified) {
+        output.log(`  - bypass actors hidden: ${change.current.name}`);
+      }
       continue;
     }
 
     output.log(`${apply ? 'APPLIED' : 'DRIFT'} ${plan.repository}`);
     for (const change of changes) {
       output.log(`  - ${change.action}: ${change.desired.name}`);
+    }
+    for (const change of unverified) {
+      output.log(`  - bypass actors hidden: ${change.current.name}`);
     }
     if (metadataDrift) {
       output.log(`  - update metadata: ${plan.metadata!.fields.join(', ')}`);
@@ -137,7 +146,7 @@ function hasDrift(
 ): boolean {
   return plans.some(
     (plan) =>
-      plan.changes.some((change) => change.action !== 'unchanged') ||
+      plan.changes.some((change) => change.action === 'create' || change.action === 'update') ||
       plan.metadata?.action === 'update',
   );
 }

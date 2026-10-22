@@ -262,6 +262,25 @@ describe('GitHubClient', () => {
     });
   });
 
+  it('marks bypass actors hidden by public API access instead of assuming there are none', async () => {
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets?per_page=100',
+        response: Response.json([{ id: 7, source_type: 'Repository' }]),
+      },
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets/7',
+        response: Response.json({
+          ...protectedBranchesFixture, id: 7, bypass_actors: null,
+        }),
+      },
+    ];
+    const client = new GitHubClient('read-token', fakeFetch(requests), 'https://api.github.test');
+    expect(await client.list('ExampleOrg', 'project')).toMatchObject([
+      { id: 7, bypass_actors: [], bypass_actors_redacted: true },
+    ]);
+  });
+
   it('creates and updates repository rulesets with JSON bodies', async () => {
     const requests: ExpectedRequest[] = [
       {

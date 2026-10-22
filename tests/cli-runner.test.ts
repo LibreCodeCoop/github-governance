@@ -241,6 +241,25 @@ describe('runCli', () => {
     expect(modes).toEqual([true]);
   });
 
+  it('reports bypass verification as incomplete without producing false drift', async () => {
+    const current: ExistingRepositoryRuleset = {
+      ...structuredClone(protectedBranches),
+      id: 11, bypass_actors: [], bypass_actors_redacted: true,
+    };
+    const messages: string[] = [];
+    const code = await runCli(
+      ['--org', 'ExampleOrg'],
+      { GITHUB_TOKEN: 'token' },
+      () => new FakeClient([current]),
+      { log: (message) => messages.push(message), error: () => undefined },
+      configLoader,
+    );
+    expect(code).toBe(0);
+    expect(messages).toContain('UNVERIFIED ExampleOrg/project');
+    expect(messages).toContain('  - bypass actors hidden: Protect branches');
+    expect(messages.some((m) => m.startsWith('DRIFT '))).toBe(false);
+  });
+
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 
