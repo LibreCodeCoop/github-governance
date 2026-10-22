@@ -128,6 +128,53 @@ describe('GitHubClient', () => {
     expect(requests).toHaveLength(0);
   });
 
+  it('discovers public repositories with a read-only token, excluding archived and private entries', async () => {
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/orgs/ExampleOrg/repos?type=public&per_page=100&page=1',
+        response: Response.json([
+          { name: 'project', owner: { login: 'ExampleOrg' }, visibility: 'public', archived: false, description: 'Example', homepage: null, topics: [] },
+          { name: 'archived', owner: { login: 'ExampleOrg' }, visibility: 'public', archived: true },
+          { name: 'not-public', owner: { login: 'ExampleOrg' }, visibility: 'private', archived: false },
+        ]),
+      },
+    ];
+    const client = new GitHubClient('read-token', fakeFetch(requests), 'https://api.github.test', 'public');
+    await expect(client.listManagedRepositories('ExampleOrg')).resolves.toEqual([
+      { owner: 'ExampleOrg', name: 'project', visibility: 'public', archived: false, description: 'Example', homepage: null, topics: [] },
+    ]);
+    expect(requests).toHaveLength(0);
+  });
+
+  it('paginates public organization discovery without querying the installation', async () => {
+    const item = (i: number) => ({
+      name: `repo-${i}`, owner: { login: 'ExampleOrg' },
+      visibility: 'public', archived: false, description: null, homepage: null, topics: [],
+    });
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/orgs/ExampleOrg/repos?type=public&per_page=100&page=1',
+        response: Response.json(Array.from({ length: 100 }, (_, i) => item(i))),
+      },
+      {
+        url: 'https://api.github.test/orgs/ExampleOrg/repos?type=public&per_page=100&page=2',
+        response: Response.json([item(100)]),
+      },
+    ];
+    const client = new GitHubClient('read-token', fakeFetch(requests), 'https://api.github.test', 'public');
+    expect(await client.listManagedRepositories('ExampleOrg')).toHaveLength(101);
+    expect(requests).toHaveLength(0);
+  });
+
+  it('fails closed when public discovery is forbidden', async () => {
+    const requests: ExpectedRequest[] = [{
+      url: 'https://api.github.test/orgs/ExampleOrg/repos?type=public&per_page=100&page=1',
+      response: new Response('', { status: 403 }),
+    }];
+    const client = new GitHubClient('read-token', fakeFetch(requests), 'https://api.github.test', 'public');
+    await expect(client.listManagedRepositories('ExampleOrg')).rejects.toThrow('HTTP 403');
+  });
+
   it('returns false only for a 404 content probe', async () => {
     const requests: ExpectedRequest[] = [
       {

@@ -25,6 +25,10 @@ inputs:
     description: Report drift without failing the plan; operational errors still fail
     required: false
     default: 'false'
+  public-discovery:
+    description: Discover public organization repositories without GitHub App installation access; plan only
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -45,6 +49,7 @@ runs:
         CONFIG_PATH: ${{ inputs.config }}
         APPLY: ${{ inputs.apply }}
         ALLOW_DRIFT: ${{ inputs.allow-drift }}
+        PUBLIC_DISCOVERY: ${{ inputs.public-discovery }}
       working-directory: ${{ github.action_path }}
       run: |
         args=(--config "$CONFIG_PATH")
@@ -63,6 +68,9 @@ runs:
         fi
         if [[ "$ALLOW_DRIFT" == "true" ]]; then
           args+=(--allow-drift)
+        fi
+        if [[ "$PUBLIC_DISCOVERY" == "true" ]]; then
+          args+=(--public-discovery)
         fi
 
         node src/cli.ts "${args[@]}" | tee "$RUNNER_TEMP/github-governance-result.txt"

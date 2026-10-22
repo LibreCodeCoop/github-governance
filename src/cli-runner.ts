@@ -31,7 +31,7 @@ export type GovernanceConfigLoader = (
 export async function runCli(
   args: string[],
   environment: CliEnvironment,
-  clientFactory: (token: string) => GovernanceClient,
+  clientFactory: (token: string, publicDiscovery: boolean) => GovernanceClient,
   output: CliOutput,
   configLoader: GovernanceConfigLoader = loadGovernanceConfig,
 ): Promise<number> {
@@ -40,10 +40,16 @@ export async function runCli(
   const configPath = option(args, '--config');
   const apply = args.includes('--apply');
   const allowDrift = args.includes('--allow-drift');
+  const publicDiscovery = args.includes('--public-discovery');
   const token = environment.GITHUB_TOKEN;
 
   if ((organization ? 1 : 0) + (repositoryArgument ? 1 : 0) !== 1) {
     output.error('Specify exactly one of --org OWNER or --repo OWNER/REPO');
+    return 2;
+  }
+
+  if (publicDiscovery && (!organization || apply)) {
+    output.error('--public-discovery requires --org and cannot be combined with --apply');
     return 2;
   }
 
@@ -52,7 +58,7 @@ export async function runCli(
     return 2;
   }
 
-  const client = clientFactory(token);
+  const client = clientFactory(token, publicDiscovery);
   const config = await configLoader(configPath);
   const resolveRulesets = (repository: {
     owner: string;
