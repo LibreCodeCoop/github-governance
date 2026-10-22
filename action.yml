@@ -6,7 +6,7 @@ description: Plan or apply repository rulesets with the shared LibreCode governa
 
 inputs:
   token:
-    description: GitHub token with administration read permission for plan, write for apply
+    description: Read-only token for public planning, administration write token for Apply
     required: true
   repository:
     description: Repository in OWNER/REPO form (exclusive with organization)
@@ -23,6 +23,10 @@ inputs:
     default: 'false'
   allow-drift:
     description: Report drift without failing the plan; operational errors still fail
+    required: false
+    default: 'false'
+  public-discovery:
+    description: Discover public organization repositories without GitHub App installation access; plan only
     required: false
     default: 'false'
 
@@ -45,6 +49,7 @@ runs:
         CONFIG_PATH: ${{ inputs.config }}
         APPLY: ${{ inputs.apply }}
         ALLOW_DRIFT: ${{ inputs.allow-drift }}
+        PUBLIC_DISCOVERY: ${{ inputs.public-discovery }}
       working-directory: ${{ github.action_path }}
       run: |
         args=(--config "$CONFIG_PATH")
@@ -63,6 +68,9 @@ runs:
         fi
         if [[ "$ALLOW_DRIFT" == "true" ]]; then
           args+=(--allow-drift)
+        fi
+        if [[ "$PUBLIC_DISCOVERY" == "true" ]]; then
+          args+=(--public-discovery)
         fi
 
         node src/cli.ts "${args[@]}" | tee "$RUNNER_TEMP/github-governance-result.txt"

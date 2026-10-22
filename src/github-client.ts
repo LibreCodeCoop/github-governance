@@ -40,15 +40,18 @@ export class GitHubClient
   private readonly token: string;
   private readonly fetchImpl: FetchLike;
   private readonly apiUrl: string;
+  private readonly discovery: 'installation' | 'public';
 
   constructor(
     token: string,
     fetchImpl: FetchLike = fetch,
     apiUrl = 'https://api.github.com',
+    discovery: 'installation' | 'public' = 'installation',
   ) {
     this.token = token;
     this.fetchImpl = fetchImpl;
     this.apiUrl = apiUrl;
+    this.discovery = discovery;
   }
 
   async getRepository(
@@ -100,12 +103,13 @@ export class GitHubClient
     const result: RepositoryMetadata[] = [];
 
     for (let page = 1; ; page += 1) {
-      const response = await this.requestJson<{
-        repositories?: GitHubRepository[];
-      }>(
-        `/installation/repositories?per_page=100&page=${page}`,
-      );
-      const repositories = response.repositories ?? [];
+      const repositories = this.discovery === 'public'
+        ? await this.requestJson<GitHubRepository[]>(
+          `/orgs/${encodeURIComponent(organization)}/repos?type=public&per_page=100&page=${page}`,
+        )
+        : (await this.requestJson<{ repositories?: GitHubRepository[] }>(
+          `/installation/repositories?per_page=100&page=${page}`,
+        )).repositories ?? [];
 
       for (const repository of repositories) {
         const owner = repository.owner?.login;

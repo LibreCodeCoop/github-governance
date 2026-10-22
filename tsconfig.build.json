@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "declaration": true
+    "declaration": true,
+    "erasableSyntaxOnly": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["tests/**/*.ts"]

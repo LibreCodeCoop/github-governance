@@ -200,6 +200,47 @@ describe('runCli', () => {
     )).rejects.toThrow('GitHub API unavailable');
   });
 
+  it('rejects public discovery during apply to preserve installation-scoped writes', async () => {
+    const errors: string[] = [];
+    const code = await runCli(
+      ['--org', 'ExampleOrg', '--apply', '--public-discovery'],
+      { GITHUB_TOKEN: 'token' },
+      () => { throw new Error('Must not contact GitHub'); },
+      { log: () => undefined, error: (message) => errors.push(message) },
+      configLoader,
+    );
+    expect(code).toBe(2);
+    expect(errors).toEqual([
+      '--public-discovery requires --org and cannot be combined with --apply',
+    ]);
+  });
+
+  it('rejects public discovery for a repository-scoped run', async () => {
+    const errors: string[] = [];
+    const code = await runCli(
+      ['--repo', 'ExampleOrg/project', '--public-discovery'],
+      { GITHUB_TOKEN: 'token' },
+      () => { throw new Error('Must not contact GitHub'); },
+      { log: () => undefined, error: (message) => errors.push(message) },
+      configLoader,
+    );
+    expect(code).toBe(2);
+    expect(errors).toHaveLength(1);
+  });
+
+  it('passes the read-only discovery selection only to public organization plans', async () => {
+    const modes: boolean[] = [];
+    const code = await runCli(
+      ['--org', 'ExampleOrg', '--allow-drift', '--public-discovery'],
+      { GITHUB_TOKEN: 'token' },
+      (_token, discovery) => { modes.push(discovery); return new FakeClient(); },
+      { log: () => undefined, error: () => undefined },
+      configLoader,
+    );
+    expect(code).toBe(0);
+    expect(modes).toEqual([true]);
+  });
+
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 
