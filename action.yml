@@ -65,4 +65,14 @@ runs:
           args+=(--allow-drift)
         fi
 
-        node src/cli.ts "${args[@]}"
+        node src/cli.ts "${args[@]}" | tee "$RUNNER_TEMP/github-governance-result.txt"
+        if [[ "$ALLOW_DRIFT" == "true" ]] && grep -q '^DRIFT ' "$RUNNER_TEMP/github-governance-result.txt"; then
+          echo '::warning::Governance drift detected; review the plan before any manual apply'
+          {
+            echo '### Repository governance drift'
+            echo 'Review these repositories before approving an apply:'
+            echo '```text'
+            grep '^DRIFT ' "$RUNNER_TEMP/github-governance-result.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
