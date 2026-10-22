@@ -114,6 +114,18 @@ describe('reconcileRepositoryRulesets', () => {
     });
   });
 
+  it('fails closed even when visible ruleset fields drift and bypass is redacted', async () => {
+    const client = new FakeClient([{
+      ...structuredClone(protectedBranchesFixture),
+      enforcement: 'disabled',
+      id: 18, bypass_actors: [], bypass_actors_redacted: true,
+    }]);
+    await expect(reconcileRepositoryRulesets(
+      client, 'ExampleOrg', 'project', [protectedBranchesFixture],
+    )).rejects.toThrow('hidden bypass actors');
+    expect(client.updated).toEqual([]);
+  });
+
   it('never writes a ruleset when bypass actor visibility is insufficient', async () => {
     const client = new FakeClient([{
       ...structuredClone(protectedBranchesFixture),

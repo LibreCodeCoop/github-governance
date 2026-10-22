@@ -84,8 +84,10 @@ export async function reconcileRepositoryRulesets(
     desiredRulesets,
   );
 
-  const redacted = changes.find((change) => change.action === 'unverified');
-  if (redacted) {
+  const redacted = changes.find(
+    (change) => change.action !== 'create' && change.current.bypass_actors_redacted,
+  );
+  if (redacted && redacted.action !== 'create') {
     throw new Error(`Cannot apply with hidden bypass actors: ${redacted.current.name}`);
   }
 

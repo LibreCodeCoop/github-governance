@@ -106,8 +106,10 @@ export async function syncRepository(
     desiredRulesets,
     desiredMetadata,
   );
-  const unverified = plan.changes.find((change) => change.action === 'unverified');
-  if (unverified) {
+  const unverified = plan.changes.find(
+    (change) => change.action !== 'create' && change.current.bypass_actors_redacted,
+  );
+  if (unverified && unverified.action !== 'create') {
     throw new Error(`Cannot apply ruleset with hidden bypass actors: ${unverified.current.name}`);
   }
   const desired = plan.changes.flatMap((change) =>
