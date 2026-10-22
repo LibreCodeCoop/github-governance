@@ -6,7 +6,7 @@ description: Plan or apply repository rulesets with the shared LibreCode governa
 
 inputs:
   token:
-    description: GitHub token with administration read permission for plan, write for apply
+    description: Read-only token for public planning, administration write token for Apply
     required: true
   repository:
     description: Repository in OWNER/REPO form (exclusive with organization)
