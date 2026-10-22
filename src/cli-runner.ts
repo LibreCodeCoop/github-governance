@@ -39,6 +39,7 @@ export async function runCli(
   const repositoryArgument = option(args, '--repo');
   const configPath = option(args, '--config');
   const apply = args.includes('--apply');
+  const allowDrift = args.includes('--allow-drift');
   const token = environment.GITHUB_TOKEN;
 
   if ((organization ? 1 : 0) + (repositoryArgument ? 1 : 0) !== 1) {
@@ -87,7 +88,7 @@ export async function runCli(
       : await planRepository(client, metadata, desiredRulesets, desiredMetadata);
 
     writePlans([plan], apply, output);
-    return !apply && hasDrift([plan]) ? 1 : 0;
+    return !apply && !allowDrift && hasDrift([plan]) ? 1 : 0;
   }
 
   const plans = apply
@@ -95,7 +96,7 @@ export async function runCli(
     : await planOrganization(client, organization!, resolveRulesets, resolveMetadata);
 
   writePlans(plans, apply, output);
-  return !apply && hasDrift(plans) ? 1 : 0;
+  return !apply && !allowDrift && hasDrift(plans) ? 1 : 0;
 }
 
 function writePlans(

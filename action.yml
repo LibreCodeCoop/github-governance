@@ -6,16 +6,23 @@ description: Plan or apply repository rulesets with the shared LibreCode governa
 
 inputs:
   token:
-    description: Repository-scoped GitHub token with administration permission
+    description: GitHub token with administration read permission for plan, write for apply
     required: true
   repository:
-    description: Repository in OWNER/REPO form
-    required: true
+    description: Repository in OWNER/REPO form (exclusive with organization)
+    required: false
+  organization:
+    description: Plan or apply governance across public repositories in an organization
+    required: false
   config:
     description: Path to caller governance config
     required: true
   apply:
     description: Apply changes instead of dry-running
+    required: false
+    default: 'false'
+  allow-drift:
+    description: Report drift without failing the plan; operational errors still fail
     required: false
     default: 'false'
 
@@ -34,17 +41,28 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         TARGET_REPOSITORY: ${{ inputs.repository }}
+        TARGET_ORGANIZATION: ${{ inputs.organization }}
         CONFIG_PATH: ${{ inputs.config }}
         APPLY: ${{ inputs.apply }}
+        ALLOW_DRIFT: ${{ inputs.allow-drift }}
       working-directory: ${{ github.action_path }}
       run: |
-        args=(
-          --repo "$TARGET_REPOSITORY"
-          --config "$CONFIG_PATH"
-        )
+        args=(--config "$CONFIG_PATH")
 
+        if [[ -n "$TARGET_REPOSITORY" && -n "$TARGET_ORGANIZATION" ]]; then
+          echo '::error::Specify repository or organization, not both'
+          exit 2
+        fi
+        if [[ -n "$TARGET_ORGANIZATION" ]]; then
+          args+=(--org "$TARGET_ORGANIZATION")
+        else
+          args+=(--repo "$TARGET_REPOSITORY")
+        fi
         if [[ "$APPLY" == "true" ]]; then
           args+=(--apply)
+        fi
+        if [[ "$ALLOW_DRIFT" == "true" ]]; then
+          args+=(--allow-drift)
         fi
 
         node src/cli.ts "${args[@]}"
