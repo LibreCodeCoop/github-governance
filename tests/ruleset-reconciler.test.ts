@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { protectedBranchesFixture } from './ruleset-fixtures.js';
 import {
+  planRepositoryRulesets,
   reconcileRepositoryRulesets,
   type ExistingRepositoryRuleset,
   type RepositoryRulesetClient,
@@ -90,6 +91,51 @@ describe('reconcileRepositoryRulesets', () => {
     expect(client.updated).toEqual([
       { id: 9, ruleset: protectedBranchesFixture },
     ]);
+  });
+
+  it('reports a ruleset as unverified when only its bypass actors are redacted', () => {
+    const current: ExistingRepositoryRuleset = {
+      ...structuredClone(protectedBranchesFixture),
+      id: 17, bypass_actors: [], bypass_actors_redacted: true,
+    };
+    expect(planRepositoryRulesets([current], [protectedBranchesFixture])).toEqual([
+      { action: 'unverified', current, desired: protectedBranchesFixture },
+    ]);
+  });
+
+  it('keeps reporting observable drift when bypass actors are redacted', () => {
+    const current: ExistingRepositoryRuleset = {
+      ...structuredClone(protectedBranchesFixture),
+      id: 17, bypass_actors: [], bypass_actors_redacted: true,
+      enforcement: 'disabled',
+    };
+    expect(planRepositoryRulesets([current], [protectedBranchesFixture])[0]).toMatchObject({
+      action: 'update', id: 17,
+    });
+  });
+
+  it('fails closed even when visible ruleset fields drift and bypass is redacted', async () => {
+    const client = new FakeClient([{
+      ...structuredClone(protectedBranchesFixture),
+      enforcement: 'disabled',
+      id: 18, bypass_actors: [], bypass_actors_redacted: true,
+    }]);
+    await expect(reconcileRepositoryRulesets(
+      client, 'ExampleOrg', 'project', [protectedBranchesFixture],
+    )).rejects.toThrow('hidden bypass actors');
+    expect(client.updated).toEqual([]);
+  });
+
+  it('never writes a ruleset when bypass actor visibility is insufficient', async () => {
+    const client = new FakeClient([{
+      ...structuredClone(protectedBranchesFixture),
+      id: 17, bypass_actors: [], bypass_actors_redacted: true,
+    }]);
+    await expect(reconcileRepositoryRulesets(
+      client, 'ExampleOrg', 'project', [protectedBranchesFixture],
+    )).rejects.toThrow('hidden bypass actors');
+    expect(client.created).toEqual([]);
+    expect(client.updated).toEqual([]);
   });
 
   it('does not delete unrelated rulesets', async () => {

@@ -6,6 +6,8 @@ import { rulesetsEqual } from './ruleset-normalizer.ts';
 
 export type ExistingRepositoryRuleset = RepositoryRuleset & {
   id: number;
+  // GitHub hides bypass_actors unless the caller can write the ruleset.
+  bypass_actors_redacted?: boolean;
 };
 
 export interface RepositoryRulesetClient {
@@ -31,7 +33,8 @@ export type RulesetChange =
       current: ExistingRepositoryRuleset;
       desired: RepositoryRuleset;
     }
-  | { action: 'unchanged'; current: ExistingRepositoryRuleset };
+  | { action: 'unchanged'; current: ExistingRepositoryRuleset }
+  | { action: 'unverified'; current: ExistingRepositoryRuleset; desired: RepositoryRuleset };
 
 export function planRepositoryRulesets(
   existing: ExistingRepositoryRuleset[],
@@ -46,7 +49,12 @@ export function planRepositoryRulesets(
       return { action: 'create', desired };
     }
 
-    if (rulesetsEqual(current, desired)) {
+    if (current.bypass_actors_redacted) {
+      // Compare only the fields GitHub actually exposed; bypass must be verified by Apply.
+      if (rulesetsEqual({ ...current, bypass_actors: desired.bypass_actors }, desired)) {
+        return { action: 'unverified', current, desired };
+      }
+    } else if (rulesetsEqual(current, desired)) {
       return { action: 'unchanged', current };
     }
 
@@ -75,6 +83,13 @@ export async function reconcileRepositoryRulesets(
     await client.list(owner, repository),
     desiredRulesets,
   );
+
+  const redacted = changes.find(
+    (change) => change.action !== 'create' && change.current.bypass_actors_redacted,
+  );
+  if (redacted && redacted.action !== 'create') {
+    throw new Error(`Cannot apply with hidden bypass actors: ${redacted.current.name}`);
+  }
 
   const result: ReconcileResult = {
     created: [],

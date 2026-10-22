@@ -333,6 +333,7 @@ function parseExistingRuleset(value: unknown): ExistingRepositoryRuleset {
     throw new Error('Invalid ruleset response from GitHub');
   }
 
+  const bypassActorsVisible = Array.isArray(value.bypass_actors);
   const bypassActors = Array.isArray(value.bypass_actors)
     ? value.bypass_actors.map(parseBypassActor)
     : [];
@@ -346,6 +347,7 @@ function parseExistingRuleset(value: unknown): ExistingRepositoryRuleset {
     target,
     enforcement,
     bypass_actors: bypassActors,
+    ...(bypassActorsVisible ? {} : { bypass_actors_redacted: true }),
     conditions: {
       ref_name: {
         include: stringArray(conditions.ref_name.include),
