@@ -24,6 +24,7 @@ type GitHubRepository = {
   description?: unknown;
   homepage?: unknown;
   topics?: unknown;
+  default_branch?: unknown;
   owner?: {
     login?: unknown;
   };
@@ -94,6 +95,7 @@ export class GitHubClient
       description: typeof description === 'string' ? description : null,
       homepage: typeof homepage === 'string' && homepage !== '' ? homepage : null,
       topics: Array.isArray(topics) ? topics as string[] : [],
+      ...(typeof data.default_branch === 'string' ? { defaultBranch: data.default_branch } : {}),
     };
   }
 
@@ -136,6 +138,7 @@ export class GitHubClient
             description: typeof description === 'string' ? description : null,
             homepage: typeof homepage === 'string' && homepage !== '' ? homepage : null,
             topics: Array.isArray(topics) && topics.every((topic) => typeof topic === 'string') ? topics as string[] : [],
+            ...(typeof repository.default_branch === 'string' ? { defaultBranch: repository.default_branch } : {}),
           });
         }
       }
@@ -205,6 +208,26 @@ export class GitHubClient
     }
 
     return true;
+  }
+
+  /** Privileged preflight for safe first-time onboarding. Never delete legacy settings. */
+  async classicProtection(
+    owner: string,
+    repository: string,
+    branch: string,
+  ): Promise<'absent' | 'present' | 'uninitialized'> {
+    const base = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/branches/${encodeURIComponent(branch)}`;
+    const branchResponse = await this.fetchImpl(this.url(base), { headers: this.headers() });
+    if (branchResponse.status === 404) return 'uninitialized';
+    if (!branchResponse.ok) {
+      throw new Error(`Cannot verify default branch for ${owner}/${repository}: HTTP ${branchResponse.status}`);
+    }
+    const protectionResponse = await this.fetchImpl(this.url(`${base}/protection`), { headers: this.headers() });
+    if (protectionResponse.status === 404) return 'absent';
+    if (!protectionResponse.ok) {
+      throw new Error(`Cannot inspect classic branch protection for ${owner}/${repository}: HTTP ${protectionResponse.status}`);
+    }
+    return 'present';
   }
 
   async list(
