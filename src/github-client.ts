@@ -488,7 +488,11 @@ function parseRule(value: unknown): RulesetRule {
           if (!isRecord(check) || typeof check.context !== 'string') {
             throw new Error('Invalid required status check from GitHub');
           }
-          return { context: check.context };
+          const integrationId = check.integration_id;
+          if (integrationId !== undefined && (typeof integrationId !== 'number' || !Number.isSafeInteger(integrationId) || integrationId < 0)) {
+            throw new Error('Invalid required status check integration from GitHub');
+          }
+          return { context: check.context, ...(integrationId !== undefined ? { integration_id: integrationId } : {}) };
         })
       : [];
 

@@ -72,5 +72,16 @@ export function rulesetsEqual(
   left: RepositoryRuleset,
   right: RepositoryRuleset,
 ): boolean {
-  return JSON.stringify(normalizeRuleset(left)) === JSON.stringify(normalizeRuleset(right));
+  const current = normalizeRuleset(left);
+  const desired = normalizeRuleset(right);
+  for (const rule of current.rules) {
+    if (rule.type !== 'required_status_checks') continue;
+    const expected = desired.rules.find((candidate) => candidate.type === 'required_status_checks');
+    if (expected?.type !== 'required_status_checks') continue;
+    rule.parameters.required_status_checks = rule.parameters.required_status_checks.map((check) => {
+      const wanted = expected.parameters.required_status_checks.find((candidate) => candidate.context === check.context);
+      return wanted?.integration_id === undefined ? { context: check.context } : check;
+    });
+  }
+  return JSON.stringify(current) === JSON.stringify(desired);
 }

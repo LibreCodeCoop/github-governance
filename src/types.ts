@@ -22,7 +22,7 @@ export type PullRequestRule = {
 export type RequiredStatusChecksRule = {
   type: 'required_status_checks';
   parameters: {
-    required_status_checks: Array<{ context: string }>;
+    required_status_checks: Array<{ context: string; integration_id?: number }>;
     strict_required_status_checks_policy: boolean;
     do_not_enforce_on_create: boolean;
   };

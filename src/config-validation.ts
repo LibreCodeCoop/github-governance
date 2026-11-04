@@ -312,13 +312,19 @@ function validateRule(value: unknown, path: string): RulesetRule {
       rejectUnknownKeys(
         checkRecord,
         `${path}.parameters.required_status_checks[${index}]`,
-        ['context'],
+        ['context', 'integration_id'],
       );
       return {
         context: expectNonEmptyString(
           checkRecord.context,
           `${path}.parameters.required_status_checks[${index}].context`,
         ),
+        ...('integration_id' in checkRecord ? {
+          integration_id: expectNonNegativeInteger(
+            checkRecord.integration_id,
+            `${path}.parameters.required_status_checks[${index}].integration_id`,
+          ),
+        } : {}),
       };
     });
 
@@ -391,6 +397,13 @@ function expectStringArray(value: unknown, path: string): string[] {
 function expectBoolean(value: unknown, path: string): boolean {
   if (typeof value !== 'boolean') {
     fail(path, 'must be a boolean');
+  }
+  return value;
+}
+
+function expectNonNegativeInteger(value: unknown, path: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    fail(path, 'must be a non-negative safe integer');
   }
   return value;
 }
