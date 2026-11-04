@@ -416,3 +416,69 @@ describe('GitHubClient', () => {
   });
 
 });
+
+
+describe('GitHubClient split public read and privileged administration tokens', () => {
+  it('uses a separate public contents token but keeps administration on the App token', async () => {
+    const observed: string[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      const authorization = new Headers(init?.headers).get('Authorization');
+      observed.push(`${path}:${authorization}`);
+      if (path === '/repos/ExampleOrg/app') {
+        return Response.json({
+          owner: { login: 'ExampleOrg' }, name: 'app',
+          visibility: 'public', archived: false, default_branch: 'main',
+        });
+      }
+      if (path === '/repos/ExampleOrg/app/contents/appinfo/info.xml') {
+        return Response.json({ type: 'file' });
+      }
+      if (String(input).endsWith('/repos/ExampleOrg/app/rulesets?per_page=100')) {
+        return Response.json([]);
+      }
+      throw new Error(`Unexpected request: ${String(input)}`);
+    };
+    const client = new GitHubClient('admin-token', fetcher, 'https://api.github.test', 'installation', 'contents-token');
+    await client.getRepository('ExampleOrg', 'app');
+    expect(await client.exists('ExampleOrg', 'app', 'appinfo/info.xml')).toBe(true);
+    expect(await client.list('ExampleOrg', 'app')).toEqual([]);
+    expect(observed).toEqual([
+      '/repos/ExampleOrg/app:Bearer admin-token',
+      '/repos/ExampleOrg/app/contents/appinfo/info.xml:Bearer contents-token',
+      '/repos/ExampleOrg/app/rulesets:Bearer admin-token',
+    ]);
+  });
+
+  it('refuses a separate public read token for unverified or private repositories', async () => {
+    const requests: ExpectedRequest[] = [{
+      url: 'https://api.github.test/repos/ExampleOrg/internal',
+      response: Response.json({
+        owner: { login: 'ExampleOrg' }, name: 'internal',
+        visibility: 'private', archived: false, default_branch: 'main',
+      }),
+    }];
+    const client = new GitHubClient('admin-token', fakeFetch(requests), 'https://api.github.test', 'installation', 'contents-token');
+    await expect(client.exists('ExampleOrg', 'unknown', 'appinfo/info.xml'))
+      .rejects.toThrow('verified public repository metadata');
+    await client.getRepository('ExampleOrg', 'internal');
+    await expect(client.exists('ExampleOrg', 'internal', 'appinfo/info.xml'))
+      .rejects.toThrow('verified public repository metadata');
+    expect(requests).toHaveLength(0);
+  });
+
+  it('fails closed when the separate public contents token is forbidden', async () => {
+    const requests: ExpectedRequest[] = [
+      { url: 'https://api.github.test/repos/ExampleOrg/app', response: Response.json({
+        owner: { login: 'ExampleOrg' }, name: 'app', visibility: 'public', archived: false,
+      }) },
+      { url: 'https://api.github.test/repos/ExampleOrg/app/contents/appinfo/info.xml',
+        response: new Response(null, { status: 403 }) },
+    ];
+    const client = new GitHubClient('admin-token', fakeFetch(requests), 'https://api.github.test', 'installation', 'contents-token');
+    await client.getRepository('ExampleOrg', 'app');
+    await expect(client.exists('ExampleOrg', 'app', 'appinfo/info.xml'))
+      .rejects.toThrow('HTTP 403');
+    expect(requests).toHaveLength(0);
+  });
+});

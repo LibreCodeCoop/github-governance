@@ -42,6 +42,13 @@ Mutation-capable credentials are not shared across the matrix.
 
 The private key must remain in the caller's protected environment.
 
+For public repositories, the caller can provide a separate `contents-token`
+using its short-lived, read-only `GITHUB_TOKEN`. Only public repository content
+probes use that token; protected ruleset reads/writes and branch-protection
+preflights continue using the privileged App token. The engine confirms public
+repository metadata before probing, and rejects non-404 errors. This avoids
+unnecessarily granting the ruleset-management App Contents permission.
+
 ## Workflow controls
 
 Production callers should:

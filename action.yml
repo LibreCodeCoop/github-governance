@@ -8,6 +8,9 @@ inputs:
   token:
     description: Read-only token for public planning, administration write token for Apply
     required: true
+  contents-token:
+    description: Optional separate read-only token for public repository content classification during privileged Apply
+    required: false
   repository:
     description: Repository in OWNER/REPO form (exclusive with organization)
     required: false
@@ -48,6 +51,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
+        GOVERNANCE_CONTENTS_TOKEN: ${{ inputs.contents-token }}
         TARGET_REPOSITORY: ${{ inputs.repository }}
         TARGET_ORGANIZATION: ${{ inputs.organization }}
         CONFIG_PATH: ${{ inputs.config }}

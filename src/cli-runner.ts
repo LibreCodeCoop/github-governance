@@ -18,6 +18,7 @@ import {
 
 export type CliEnvironment = {
   GITHUB_TOKEN?: string | undefined;
+  GOVERNANCE_CONTENTS_TOKEN?: string | undefined;
 };
 
 export type CliOutput = {
@@ -32,7 +33,7 @@ export type GovernanceConfigLoader = (
 export async function runCli(
   args: string[],
   environment: CliEnvironment,
-  clientFactory: (token: string, publicDiscovery: boolean) => GovernanceClient,
+  clientFactory: (token: string, publicDiscovery: boolean, contentsToken?: string) => GovernanceClient,
   output: CliOutput,
   configLoader: GovernanceConfigLoader = loadGovernanceConfig,
 ): Promise<number> {
@@ -65,7 +66,7 @@ export async function runCli(
     return 2;
   }
 
-  const client = clientFactory(token, publicDiscovery);
+  const client = clientFactory(token, publicDiscovery, environment.GOVERNANCE_CONTENTS_TOKEN || undefined);
   const config = await configLoader(configPath);
   const resolveRulesets = (repository: {
     owner: string;
