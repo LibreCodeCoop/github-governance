@@ -99,6 +99,22 @@ describe('runCli', () => {
     ]);
   });
 
+  it('passes the optional separate public contents token to the client', async () => {
+    const received: Array<[string, boolean, string | undefined]> = [];
+    const code = await runCli(
+      ['--repo', 'ExampleOrg/project', '--allow-drift'],
+      { GITHUB_TOKEN: 'admin-token', GOVERNANCE_CONTENTS_TOKEN: 'contents-token' },
+      (token, publicDiscovery, contentsToken) => {
+        received.push([token, publicDiscovery, contentsToken]);
+        return new FakeClient();
+      },
+      { log: () => undefined, error: () => undefined },
+      configLoader,
+    );
+    expect(code).toBe(0);
+    expect(received).toEqual([['admin-token', false, 'contents-token']]);
+  });
+
   it('requires a GitHub token', async () => {
     const errors: string[] = [];
 

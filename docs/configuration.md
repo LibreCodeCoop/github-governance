@@ -372,11 +372,17 @@ ruleset responses without write access. Dry-run safety therefore comes from the
 engine's explicit `apply=false` behavior rather than from reducing the token to
 administration read-only access.
 
-The current managed scope is public, non-archived repositories. Public content
-probes used by `file_exists` have been validated without requesting a separate
-`contents: read` permission from the GitHub App installation. If private or
-internal repository management is added later, review the permission model
-explicitly.
+The current managed scope is public, non-archived repositories. A privileged
+caller may supply the optional action input `contents-token` with a separate
+read-only token (for example `${{ github.token }}`). The GitHub App token then
+needs only `administration: write`, while content probes use the separate token.
+The engine verifies public repository metadata before using the separate token,
+and rejects content API errors instead of silently treating them as missing
+files. Ruleset reads and writes always use the GitHub App token.
+
+A separate contents token must not be used for private or internal repositories:
+this mode deliberately fails closed. If private or internal repository management
+is added later, review the permission model explicitly.
 
 See also:
 

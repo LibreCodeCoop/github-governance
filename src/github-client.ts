@@ -39,6 +39,8 @@ export class GitHubClient
   implements GitHubContentProbe, RepositoryRulesetClient
 {
   private readonly token: string;
+  private readonly contentsToken: string;
+  private readonly publicContentsRepositories = new Set<string>();
   private readonly fetchImpl: FetchLike;
   private readonly apiUrl: string;
   private readonly discovery: 'installation' | 'public';
@@ -48,8 +50,10 @@ export class GitHubClient
     fetchImpl: FetchLike = fetch,
     apiUrl = 'https://api.github.com',
     discovery: 'installation' | 'public' = 'installation',
+    contentsToken = token,
   ) {
     this.token = token;
+    this.contentsToken = contentsToken;
     this.fetchImpl = fetchImpl;
     this.apiUrl = apiUrl;
     this.discovery = discovery;
@@ -85,6 +89,10 @@ export class GitHubClient
       !(topics === undefined || (Array.isArray(topics) && topics.every((topic) => typeof topic === 'string')))
     ) {
       throw new Error(`Invalid repository response for ${owner}/${repository}`);
+    }
+
+    if (visibility === 'public' && !archived) {
+      this.publicContentsRepositories.add(`${owner}/${repository}`);
     }
 
     return {
@@ -148,10 +156,14 @@ export class GitHubClient
       }
     }
 
-    return result.filter(
+    const eligible = result.filter(
       (repository) =>
         repository.visibility === 'public' && !repository.archived,
     );
+    for (const repository of eligible) {
+      this.publicContentsRepositories.add(`${repository.owner}/${repository.name}`);
+    }
+    return eligible;
   }
 
   async updateRepositoryMetadata(
@@ -185,6 +197,15 @@ export class GitHubClient
     repository: string,
     path: string,
   ): Promise<boolean> {
+    // A different read token is accepted only after the privileged client
+    // has confirmed that this is an eligible public repository. Otherwise
+    // an inaccessible private path could look like a missing appinfo file.
+    if (
+      this.contentsToken !== this.token &&
+      !this.publicContentsRepositories.has(`${owner}/${repository}`)
+    ) {
+      throw new Error(`Cannot probe contents without verified public repository metadata: ${owner}/${repository}`);
+    }
     const response = await this.fetchImpl(
       this.url(
         `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${path
@@ -193,7 +214,7 @@ export class GitHubClient
           .join('/')}`,
       ),
       {
-        headers: this.headers(),
+        headers: this.headers(this.contentsToken),
       },
     );
 
@@ -317,10 +338,10 @@ export class GitHubClient
     return (await response.json()) as T;
   }
 
-  private headers(): Record<string, string> {
+  private headers(token = this.token): Record<string, string> {
     return {
       Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${this.token}`,
+      Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2026-03-10',
     };
   }

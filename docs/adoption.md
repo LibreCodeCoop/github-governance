@@ -29,7 +29,10 @@ Use a GitHub App owned by or trusted by the organization being managed.
 
 The current public-repository model needs repository administration access.
 GitHub requires administration write access for complete ruleset responses,
-including bypass actors, even during dry-run.
+including bypass actors, even during dry-run. To classify public repositories
+without broadening the App installation, pass a separate caller read-only token
+using `contents-token: ${{ github.token }}`. The App then needs repository
+Administration (write), not Contents (read).
 
 Keep the App private key in an environment secret. Do not commit it or move it
 to the shared governance repository.
