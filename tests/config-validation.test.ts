@@ -69,6 +69,12 @@ describe('validateGovernanceConfig', () => {
     );
   });
 
+  it('accepts an explicit signed-commit ruleset', () => {
+    const config = structuredClone(validConfig) as any;
+    config.policies.protected.rules.push({ type: 'required_signatures' });
+    expect(validateGovernanceConfig(config)).toEqual(config);
+  });
+
   it('accepts signed commits and bound required CI checks', () => {
     const config = structuredClone(validConfig) as any;
     config.policies.protected.rules.push({ type: 'required_signatures' });
@@ -95,6 +101,22 @@ describe('validateGovernanceConfig', () => {
     });
     expect(() => validateGovernanceConfig(config)).toThrow('integration_id');
   });
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid numerical integration ID %s',
+    (integrationId) => {
+      const config = structuredClone(validConfig) as any;
+      config.policies.protected.rules.push({
+        type: 'required_status_checks',
+        parameters: {
+          required_status_checks: [{ context: 'PHPUnit', integration_id: integrationId }],
+          strict_required_status_checks_policy: true,
+          do_not_enforce_on_create: false,
+        },
+      });
+      expect(() => validateGovernanceConfig(config)).toThrow('integration_id');
+    },
+  );
 
   it('rejects unsupported rule types', () => {
     const config = structuredClone(validConfig) as any;

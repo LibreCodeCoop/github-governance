@@ -445,7 +445,7 @@ function parseRule(value: unknown): RulesetRule {
             throw new Error('Invalid required status check from GitHub');
           }
           const integrationId = check.integration_id;
-          if (integrationId !== undefined && (typeof integrationId !== 'number' || !Number.isInteger(integrationId))) {
+          if (integrationId !== undefined && (typeof integrationId !== 'number' || !Number.isSafeInteger(integrationId) || integrationId < 0)) {
             throw new Error('Invalid required status check integration from GitHub');
           }
           return { context: check.context, ...(integrationId !== undefined ? { integration_id: integrationId } : {}) };
