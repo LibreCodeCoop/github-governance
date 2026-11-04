@@ -13,4 +13,5 @@ export type RepositoryMetadata = {
   description: string | null;
   homepage: string | null;
   topics: string[];
+  defaultBranch?: string;
 };

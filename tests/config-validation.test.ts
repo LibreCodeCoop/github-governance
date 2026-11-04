@@ -69,6 +69,12 @@ describe('validateGovernanceConfig', () => {
     );
   });
 
+  it('accepts an explicit signed-commit ruleset', () => {
+    const config = structuredClone(validConfig) as any;
+    config.policies.protected.rules.push({ type: 'required_signatures' });
+    expect(validateGovernanceConfig(config)).toEqual(config);
+  });
+
   it('rejects unsupported rule types', () => {
     const config = structuredClone(validConfig) as any;
     config.policies.protected.rules = [{ type: 'creation' }];

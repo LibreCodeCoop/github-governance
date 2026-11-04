@@ -233,7 +233,7 @@ function validateRule(value: unknown, path: string): RulesetRule {
   const record = expectRecord(value, path);
   const type = expectString(record.type, `${path}.type`);
 
-  if (type === 'deletion' || type === 'non_fast_forward') {
+  if (type === 'deletion' || type === 'non_fast_forward' || type === 'required_signatures') {
     rejectUnknownKeys(record, path, ['type']);
     return { type };
   }

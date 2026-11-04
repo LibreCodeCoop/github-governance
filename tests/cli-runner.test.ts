@@ -260,6 +260,46 @@ describe('runCli', () => {
     expect(messages.some((m) => m.startsWith('DRIFT '))).toBe(false);
   });
 
+  it('refuses onboarding without explicit privileged apply', async () => {
+    const errors: string[] = [];
+    const code = await runCli(
+      ['--repo', 'ExampleOrg/project', '--onboard-only'],
+      { GITHUB_TOKEN: 'token' },
+      () => { throw new Error('GitHub must not be contacted'); },
+      { log: () => undefined, error: (message) => errors.push(message) },
+      configLoader,
+    );
+    expect(code).toBe(2);
+    expect(errors).toEqual(['--onboard-only requires --apply and an installation-scoped token']);
+  });
+
+  it('never creates product-specific CI rules during default-only onboarding', async () => {
+    const events: string[] = [];
+    class OnboardFake extends FakeClient {
+      override async getRepository(owner: string, repository: string): Promise<RepositoryMetadata> {
+        return { ...await super.getRepository(owner, repository), defaultBranch: 'main' };
+      }
+      async classicProtection() { events.push('preflight'); return 'absent' as const; }
+      override async create(...args: unknown[]) {
+        const ruleset = args[2] as RepositoryRuleset;
+        events.push(`create:${ruleset.name}`);
+      }
+      override async update() { throw new Error('must not update existing policy'); }
+      override async updateRepositoryMetadata() { throw new Error('must not change metadata'); }
+    }
+    const messages: string[] = [];
+    const result = await runCli(
+      ['--repo', 'ExampleOrg/project', '--onboard-only', '--apply'],
+      { GITHUB_TOKEN: 'token' },
+      () => new OnboardFake(),
+      { log: (message) => messages.push(message), error: () => undefined },
+      configLoader,
+    );
+    expect(result).toBe(0);
+    expect(events).toEqual(['preflight', 'create:Protect branches']);
+    expect(messages).toEqual(['CREATED ExampleOrg/project: default organization ruleset created']);
+  });
+
   it('uses apply mode only when explicitly requested', async () => {
     const messages: string[] = [];
 

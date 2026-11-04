@@ -8,6 +8,7 @@ import {
   type GovernanceConfig,
 } from './config.ts';
 import type { GovernanceClient } from './governance.ts';
+import { onboardRepository, type OnboardingClient } from './onboarding.ts';
 import {
   planOrganization,
   planRepository,
@@ -39,6 +40,7 @@ export async function runCli(
   const repositoryArgument = option(args, '--repo');
   const configPath = option(args, '--config');
   const apply = args.includes('--apply');
+  const onboardOnly = args.includes('--onboard-only');
   const allowDrift = args.includes('--allow-drift');
   const publicDiscovery = args.includes('--public-discovery');
   const token = environment.GITHUB_TOKEN;
@@ -50,6 +52,11 @@ export async function runCli(
 
   if (publicDiscovery && (!organization || apply)) {
     output.error('--public-discovery requires --org and cannot be combined with --apply');
+    return 2;
+  }
+
+  if (onboardOnly && (!apply || publicDiscovery)) {
+    output.error('--onboard-only requires --apply and an installation-scoped token');
     return 2;
   }
 
@@ -78,6 +85,50 @@ export async function runCli(
     homepage: string | null;
     topics: string[];
   }) => resolveRepositoryMetadata(config, repository);
+
+  if (onboardOnly) {
+    // The onboarding mode is deliberately narrower than regular --apply.
+    // It creates only a missing common default; existing rulesets and metadata
+    // are never updated. Fail if caller configuration is ambiguous.
+    const defaults = config.defaults;
+    if (defaults?.policies?.length !== 1 || (defaults.rulesets?.length ?? 0) !== 0) {
+      output.error('Safe onboarding requires exactly one named default policy');
+      return 2;
+    }
+    const defaultPolicy = config.policies?.[defaults.policies[0]!];
+    if (!defaultPolicy) {
+      output.error('Default policy is not defined');
+      return 2;
+    }
+    if (!('classicProtection' in client) || typeof client.classicProtection !== 'function') {
+      output.error('A privileged branch-protection preflight is required for onboarding');
+      return 2;
+    }
+    const provisioner = client as OnboardingClient;
+    let repos;
+    if (repositoryArgument) {
+      const parts = repositoryArgument.split('/');
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        output.error('--repo must use OWNER/REPO');
+        return 2;
+      }
+      repos = [await client.getRepository(parts[0], parts[1])];
+    } else {
+      repos = await client.listManagedRepositories(organization!);
+    }
+    let reviewNeeded = false;
+    for (const repo of repos) {
+      const selected = (await resolveRulesets(repo)).find((rule) => rule.name === defaultPolicy.name);
+      if (!selected) {
+        output.error(`Missing default policy for ${repo.owner}/${repo.name}`);
+        return 2;
+      }
+      const result = await onboardRepository(provisioner, repo, selected);
+      output.log(`${result.status.toUpperCase()} ${result.repository}: ${result.reason}`);
+      if (result.status === 'review') reviewNeeded = true;
+    }
+    return reviewNeeded ? 1 : 0;
+  }
 
   if (repositoryArgument) {
     const [owner, repository, ...extra] = repositoryArgument.split('/');

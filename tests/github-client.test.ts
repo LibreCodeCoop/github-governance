@@ -24,6 +24,55 @@ function fakeFetch(expectations: ExpectedRequest[]): typeof fetch {
   };
 }
 
+describe('GitHubClient privileged classic protection preflight', () => {
+  for (const scenario of [
+    { name: 'legacy protection exists', protection: Response.json({ url: 'https://api.github.test/example' }), result: 'present' },
+    { name: 'legacy protection absent', protection: new Response(null, { status: 404 }), result: 'absent' },
+  ] as const) {
+    it(scenario.name, async () => {
+      const requests: ExpectedRequest[] = [
+        {
+          url: 'https://api.github.test/repos/ExampleOrg/project/branches/main',
+          response: Response.json({ name: 'main' }),
+        },
+        {
+          url: 'https://api.github.test/repos/ExampleOrg/project/branches/main/protection',
+          response: scenario.protection,
+        },
+      ];
+      const client = new GitHubClient('token', fakeFetch(requests), 'https://api.github.test');
+      expect(await client.classicProtection('ExampleOrg', 'project', 'main')).toBe(scenario.result);
+      expect(requests).toHaveLength(0);
+    });
+  }
+
+  it('does not provision a repository without an initialized default branch', async () => {
+    const requests: ExpectedRequest[] = [{
+      url: 'https://api.github.test/repos/ExampleOrg/empty/branches/main',
+      response: new Response(null, { status: 404 }),
+    }];
+    const client = new GitHubClient('token', fakeFetch(requests), 'https://api.github.test');
+    expect(await client.classicProtection('ExampleOrg', 'empty', 'main')).toBe('uninitialized');
+    expect(requests).toHaveLength(0);
+  });
+
+  it('fails closed when the branch protection endpoint rejects permission', async () => {
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/branches/main',
+        response: Response.json({ name: 'main' }),
+      },
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/branches/main/protection',
+        response: new Response(null, { status: 403 }),
+      },
+    ];
+    const client = new GitHubClient('token', fakeFetch(requests), 'https://api.github.test');
+    await expect(client.classicProtection('ExampleOrg', 'project', 'main')).rejects.toThrow('HTTP 403');
+    expect(requests).toHaveLength(0);
+  });
+});
+
 describe('GitHubClient', () => {
   it('loads repository metadata for repository-scoped execution', async () => {
     const requests: ExpectedRequest[] = [
@@ -209,6 +258,39 @@ describe('GitHubClient', () => {
     await expect(
       client.exists('ExampleOrg', 'project', 'appinfo/info.xml'),
     ).rejects.toThrow('HTTP 403');
+  });
+
+  it('reads existing signed CI rulesets without altering their requirements', async () => {
+    const existing = {
+      ...structuredClone(protectedBranchesFixture),
+      id: 9,
+      name: 'MCP required CI and signatures',
+      rules: [
+        { type: 'required_signatures' },
+        { type: 'required_status_checks', parameters: {
+          required_status_checks: [{ context: 'Unit tests', integration_id: 15368 }],
+          strict_required_status_checks_policy: true,
+          do_not_enforce_on_create: false,
+        } },
+      ],
+    };
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets?per_page=100',
+        response: Response.json([{ id: 9, source_type: 'Repository' }]),
+      },
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets/9',
+        response: Response.json(existing),
+      },
+    ];
+    const client = new GitHubClient('token', fakeFetch(requests), 'https://api.github.test');
+    const rules = await client.list('ExampleOrg', 'project');
+    expect(rules).toHaveLength(1);
+    expect(rules[0]!.rules.map((rule) => rule.type)).toEqual([
+      'required_signatures', 'required_status_checks',
+    ]);
+    expect(requests).toHaveLength(0);
   });
 
   it('loads repository ruleset details and ignores organization-sourced rulesets', async () => {

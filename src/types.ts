@@ -29,7 +29,7 @@ export type RequiredStatusChecksRule = {
 };
 
 export type SimpleRule = {
-  type: 'deletion' | 'non_fast_forward';
+  type: 'deletion' | 'non_fast_forward' | 'required_signatures';
 };
 
 export type RulesetRule = PullRequestRule | RequiredStatusChecksRule | SimpleRule;
