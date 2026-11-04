@@ -415,7 +415,7 @@ function parseRule(value: unknown): RulesetRule {
     throw new Error('Invalid ruleset rule from GitHub');
   }
 
-  if (value.type === 'deletion' || value.type === 'non_fast_forward') {
+  if (value.type === 'deletion' || value.type === 'non_fast_forward' || value.type === 'required_signatures') {
     return { type: value.type };
   }
 

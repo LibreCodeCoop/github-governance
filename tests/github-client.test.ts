@@ -260,6 +260,39 @@ describe('GitHubClient', () => {
     ).rejects.toThrow('HTTP 403');
   });
 
+  it('reads existing signed CI rulesets without altering their requirements', async () => {
+    const existing = {
+      ...structuredClone(protectedBranchesFixture),
+      id: 9,
+      name: 'MCP required CI and signatures',
+      rules: [
+        { type: 'required_signatures' },
+        { type: 'required_status_checks', parameters: {
+          required_status_checks: [{ context: 'Unit tests', integration_id: 15368 }],
+          strict_required_status_checks_policy: true,
+          do_not_enforce_on_create: false,
+        } },
+      ],
+    };
+    const requests: ExpectedRequest[] = [
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets?per_page=100',
+        response: Response.json([{ id: 9, source_type: 'Repository' }]),
+      },
+      {
+        url: 'https://api.github.test/repos/ExampleOrg/project/rulesets/9',
+        response: Response.json(existing),
+      },
+    ];
+    const client = new GitHubClient('token', fakeFetch(requests), 'https://api.github.test');
+    const rules = await client.list('ExampleOrg', 'project');
+    expect(rules).toHaveLength(1);
+    expect(rules[0]!.rules.map((rule) => rule.type)).toEqual([
+      'required_signatures', 'required_status_checks',
+    ]);
+    expect(requests).toHaveLength(0);
+  });
+
   it('loads repository ruleset details and ignores organization-sourced rulesets', async () => {
     const rulesetResponse = {
       id: 7,
