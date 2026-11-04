@@ -69,10 +69,37 @@ describe('validateGovernanceConfig', () => {
     );
   });
 
-  it('accepts an explicit signed-commit ruleset', () => {
+  it('rejects unsupported rule types', () => {
     const config = structuredClone(validConfig) as any;
-    config.policies.protected.rules.push({ type: 'required_signatures' });
-    expect(validateGovernanceConfig(config)).toEqual(config);
+    config.policies.protected.rules = [{ type: 'creation' }];
+
+    expect(() => validateGovernanceConfig(config)).toThrow(
+      'unsupported rule type: creation',
+    );
+  });
+
+  it('rejects invalid bypass actors', () => {
+    const config = structuredClone(validConfig) as any;
+    config.policies.protected.bypass_actors = [
+      {
+        actor_id: 1,
+        actor_type: 'Robot',
+        bypass_mode: 'always',
+      },
+    ];
+
+    expect(() => validateGovernanceConfig(config)).toThrow(
+      '$.policies.protected.bypass_actors[0].actor_type',
+    );
+  });
+
+  it('rejects unsupported repository metadata keys', () => {
+    const config = structuredClone(validConfig) as any;
+    config.repositories['ExampleOrg/project'].metadata.typo = true;
+
+    expect(() => validateGovernanceConfig(config)).toThrow(
+      '$.repositories.ExampleOrg/project.metadata.typo',
+    );
   });
 
   it('accepts signed commits and bound required CI checks', () => {
@@ -117,38 +144,5 @@ describe('validateGovernanceConfig', () => {
       expect(() => validateGovernanceConfig(config)).toThrow('integration_id');
     },
   );
-
-  it('rejects unsupported rule types', () => {
-    const config = structuredClone(validConfig) as any;
-    config.policies.protected.rules = [{ type: 'creation' }];
-
-    expect(() => validateGovernanceConfig(config)).toThrow(
-      'unsupported rule type: creation',
-    );
-  });
-
-  it('rejects invalid bypass actors', () => {
-    const config = structuredClone(validConfig) as any;
-    config.policies.protected.bypass_actors = [
-      {
-        actor_id: 1,
-        actor_type: 'Robot',
-        bypass_mode: 'always',
-      },
-    ];
-
-    expect(() => validateGovernanceConfig(config)).toThrow(
-      '$.policies.protected.bypass_actors[0].actor_type',
-    );
-  });
-
-  it('rejects unsupported repository metadata keys', () => {
-    const config = structuredClone(validConfig) as any;
-    config.repositories['ExampleOrg/project'].metadata.typo = true;
-
-    expect(() => validateGovernanceConfig(config)).toThrow(
-      '$.repositories.ExampleOrg/project.metadata.typo',
-    );
-  });
 
 });
