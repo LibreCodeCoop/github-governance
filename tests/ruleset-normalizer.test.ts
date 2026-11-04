@@ -13,6 +13,29 @@ describe('normalizeRuleset', () => {
     expect(rulesetsEqual(current, protectedBranchesFixture)).toBe(true);
   });
 
+  it('compares integration-bound checks without drifting unbound configurations', () => {
+    const current = structuredClone(requiredCiFixture);
+    const desired = structuredClone(requiredCiFixture);
+    const currentRule = current.rules.find((rule) => rule.type === 'required_status_checks');
+    const desiredRule = desired.rules.find((rule) => rule.type === 'required_status_checks');
+    if (currentRule?.type !== 'required_status_checks' || desiredRule?.type !== 'required_status_checks') {
+      throw new Error('missing fixture checks');
+    }
+    currentRule.parameters.required_status_checks[0]!.integration_id = 15368;
+    expect(rulesetsEqual(current, desired)).toBe(true);
+    desiredRule.parameters.required_status_checks[0]!.integration_id = 15368;
+    expect(rulesetsEqual(current, desired)).toBe(true);
+    currentRule.parameters.required_status_checks[0]!.integration_id = 999;
+    expect(rulesetsEqual(current, desired)).toBe(false);
+  });
+
+  it('preserves required signatures as a managed rule', () => {
+    const ruleset = structuredClone(protectedBranchesFixture);
+    ruleset.rules.push({ type: 'required_signatures' });
+    expect(normalizeRuleset(ruleset).rules.some((rule) => rule.type === 'required_signatures')).toBe(true);
+    expect(rulesetsEqual(ruleset, protectedBranchesFixture)).toBe(false);
+  });
+
   it('preserves required status checks as managed policy', () => {
     const normalized = normalizeRuleset(requiredCiFixture);
     const rule = normalized.rules.find(

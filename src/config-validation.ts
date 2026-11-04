@@ -233,7 +233,7 @@ function validateRule(value: unknown, path: string): RulesetRule {
   const record = expectRecord(value, path);
   const type = expectString(record.type, `${path}.type`);
 
-  if (type === 'deletion' || type === 'non_fast_forward') {
+  if (type === 'deletion' || type === 'non_fast_forward' || type === 'required_signatures') {
     rejectUnknownKeys(record, path, ['type']);
     return { type };
   }
@@ -312,13 +312,19 @@ function validateRule(value: unknown, path: string): RulesetRule {
       rejectUnknownKeys(
         checkRecord,
         `${path}.parameters.required_status_checks[${index}]`,
-        ['context'],
+        ['context', 'integration_id'],
       );
       return {
         context: expectNonEmptyString(
           checkRecord.context,
           `${path}.parameters.required_status_checks[${index}].context`,
         ),
+        ...('integration_id' in checkRecord ? {
+          integration_id: expectNumber(
+            checkRecord.integration_id,
+            `${path}.parameters.required_status_checks[${index}].integration_id`,
+          ),
+        } : {}),
       };
     });
 

@@ -69,6 +69,33 @@ describe('validateGovernanceConfig', () => {
     );
   });
 
+  it('accepts signed commits and bound required CI checks', () => {
+    const config = structuredClone(validConfig) as any;
+    config.policies.protected.rules.push({ type: 'required_signatures' });
+    config.policies.protected.rules.push({
+      type: 'required_status_checks',
+      parameters: {
+        required_status_checks: [{ context: 'PHPUnit', integration_id: 15368 }],
+        strict_required_status_checks_policy: true,
+        do_not_enforce_on_create: false,
+      },
+    });
+    expect(validateGovernanceConfig(config)).toEqual(config);
+  });
+
+  it('rejects invalid CI integration identifiers', () => {
+    const config = structuredClone(validConfig) as any;
+    config.policies.protected.rules.push({
+      type: 'required_status_checks',
+      parameters: {
+        required_status_checks: [{ context: 'PHPUnit', integration_id: 'invalid' }],
+        strict_required_status_checks_policy: true,
+        do_not_enforce_on_create: false,
+      },
+    });
+    expect(() => validateGovernanceConfig(config)).toThrow('integration_id');
+  });
+
   it('rejects unsupported rule types', () => {
     const config = structuredClone(validConfig) as any;
     config.policies.protected.rules = [{ type: 'creation' }];

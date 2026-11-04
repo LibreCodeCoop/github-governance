@@ -392,7 +392,7 @@ function parseRule(value: unknown): RulesetRule {
     throw new Error('Invalid ruleset rule from GitHub');
   }
 
-  if (value.type === 'deletion' || value.type === 'non_fast_forward') {
+  if (value.type === 'deletion' || value.type === 'non_fast_forward' || value.type === 'required_signatures') {
     return { type: value.type };
   }
 
@@ -444,7 +444,11 @@ function parseRule(value: unknown): RulesetRule {
           if (!isRecord(check) || typeof check.context !== 'string') {
             throw new Error('Invalid required status check from GitHub');
           }
-          return { context: check.context };
+          const integrationId = check.integration_id;
+          if (integrationId !== undefined && (typeof integrationId !== 'number' || !Number.isInteger(integrationId))) {
+            throw new Error('Invalid required status check integration from GitHub');
+          }
+          return { context: check.context, ...(integrationId !== undefined ? { integration_id: integrationId } : {}) };
         })
       : [];
 
